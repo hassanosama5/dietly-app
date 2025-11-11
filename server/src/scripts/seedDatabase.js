@@ -10,7 +10,7 @@ dotenv.config();
 
 class DatabaseSeeder {
   constructor() {
-    this.connected = false;
+    this.connected = false; //test
   }
 
   async connect() {
