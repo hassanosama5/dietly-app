@@ -1,5 +1,18 @@
 const express = require("express");
 const cors = require("cors");
+const {
+  errorHandler,
+  notFound
+} = require('./middleware/error');
+const {
+  securityHeaders,
+  sanitizeData
+} = require('./middleware/security');
+const {
+  generalLimiter,
+  authLimiter
+} = require('./middleware/rateLimit');
+
 const app = express();
 
 // Import route files
@@ -10,12 +23,25 @@ const mealPlanRoutes = require('./routes/mealPlanRoutes');
 const progressRoutes = require('./routes/progressRoutes');
 const recommendationRoutes = require('./routes/recommendationRoutes');
 
-app.use(cors());
+// ==================== MIDDLEWARE SETUP ====================
+
+// Security middleware (FIRST)
+app.use(securityHeaders);
+app.use(cors()); // Use cors directly instead of corsOptions if you don't have custom config
+app.use(sanitizeData);
+
+// Rate limiting (AFTER security, BEFORE routes)
+app.use(generalLimiter);
+app.use('/api/v1/auth', authLimiter);
+
+// Body parsing middleware
 app.use(express.json());
 
-// Sample route
+// ==================== ROUTES ====================
+
+// Health check route
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok" });
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
 // Mount routers
@@ -25,5 +51,13 @@ app.use('/api/v1/meals', mealRoutes);
 app.use('/api/v1/meal-plans', mealPlanRoutes);
 app.use('/api/v1/progress', progressRoutes);
 app.use('/api/v1/recommendations', recommendationRoutes);
+
+// ==================== ERROR HANDLING ====================
+
+// 404 handler (AFTER all routes)
+app.use(notFound);
+
+// Global error handler (LAST)
+app.use(errorHandler);
 
 module.exports = app;
