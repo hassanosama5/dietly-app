@@ -32,4 +32,4 @@ router.get('/profile/nutrition', protect, calculateNutrition);
 // @access  Private
 router.get('/profile/stats', protect, getUserProfileStats);
 
-module.exports = router;
+module.exports = router
