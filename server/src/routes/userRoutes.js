@@ -1,21 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const {
-  getUsers,
-  getUser,
-  updateUser,
-  deleteUser,
-  getUserStats,
-} = require('../controllers/adminController');
-const {
   getProfile,
   calculateNutrition,
   getUserProfileStats,
 } = require('../controllers/userController');
-const { protect, authorize } = require('../middleware/auth');
-const { validateUserUpdate, validateId } = require('../middleware/validation');
+const { updateProfile } = require('../controllers/authController');
+const { protect } = require('../middleware/auth');
+const { validateUserUpdate } = require('../middleware/validation');
 
-// Profile routes (must come before /:id routes)
+// All routes here are for the LOGGED-IN USER to manage their OWN profile
+// Admin user management is in adminRoutes.js at /api/v1/admin/users
+
 // @desc    Get current user's full profile
 // @route   GET /api/v1/users/profile/me
 // @access  Private
@@ -35,34 +31,5 @@ router.get('/profile/nutrition', protect, calculateNutrition);
 // @route   GET /api/v1/users/profile/stats
 // @access  Private
 router.get('/profile/stats', protect, getUserProfileStats);
-
-// Admin routes
-// @desc    Get all users
-// @route   GET /api/v1/users
-// @access  Admin
-router.get('/', protect, authorize('admin'), getUsers);
-
-// @desc    Create user (not implemented yet)
-// @route   POST /api/v1/users
-// @access  Admin
-router.post('/', protect, authorize('admin'), (req, res) => {
-  res.status(501).json({ success: false, message: 'Create user not implemented yet' });
-});
-
-// Dynamic routes (must come after specific routes)
-// @desc    Get user by ID
-// @route   GET /api/v1/users/:id
-// @access  Admin
-router.get('/:id', protect, authorize('admin'), validateId, getUser);
-
-// @desc    Update user
-// @route   PUT /api/v1/users/:id
-// @access  Admin
-router.put('/:id', protect, authorize('admin'), validateId, validateUserUpdate, updateUser);
-
-// @desc    Delete user
-// @route   DELETE /api/v1/users/:id
-// @access  Admin
-router.delete('/:id', protect, authorize('admin'), validateId, deleteUser);
 
 module.exports = router;
