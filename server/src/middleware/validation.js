@@ -1,4 +1,5 @@
 const { body, param, query, validationResult } = require('express-validator');
+const mongoose = require('mongoose');
 
 // Handle validation errors
 exports.handleValidationErrors = (req, res, next) => {
@@ -65,18 +66,48 @@ exports.validateMeal = [
   body('name')
     .notEmpty()
     .withMessage('Meal name is required'),
-  body('calories')
-    .isNumeric()
-    .withMessage('Calories must be a number'),
-  body('protein')
-    .isNumeric()
-    .withMessage('Protein must be a number'),
-  body('carbs')
-    .isNumeric()
-    .withMessage('Carbs must be a number'),
-  body('fat')
-    .isNumeric()
-    .withMessage('Fat must be a number'),
+  body()
+    .custom((value, { req }) => {
+      const { calories, protein, carbs, fat } = req.body;
+      const nutrition = req.body.nutrition || {};
+
+      const checks = [
+        { name: 'calories', topLevel: calories, nested: nutrition.calories },
+        { name: 'protein', topLevel: protein, nested: nutrition.protein },
+        { name: 'carbs', topLevel: carbs, nested: nutrition.carbohydrates },
+        { name: 'fat', topLevel: fat, nested: nutrition.fats }
+      ];
+
+      const missing = checks.filter(
+        (field) =>
+          field.topLevel === undefined &&
+          field.nested === undefined
+      );
+
+      if (missing.length) {
+        throw new Error(
+          `Missing required nutrition fields: ${missing
+            .map((m) => m.name)
+            .join(', ')}`
+        );
+      }
+
+      const invalid = checks.filter((field) => {
+        const valueToCheck =
+          field.topLevel !== undefined ? field.topLevel : field.nested;
+        return isNaN(Number(valueToCheck));
+      });
+
+      if (invalid.length) {
+        throw new Error(
+          `Nutrition fields must be numeric: ${invalid
+            .map((m) => m.name)
+            .join(', ')}`
+        );
+      }
+
+      return true;
+    }),
   body('mealType')
     .isIn(['breakfast', 'lunch', 'dinner', 'snack'])
     .withMessage('Meal type must be breakfast, lunch, dinner, or snack'),
@@ -88,12 +119,97 @@ exports.validateMealPlan = [
   body('startDate')
     .isISO8601()
     .withMessage('Start date must be a valid date'),
+  body('duration')
+    .isInt({ min: 1, max: 30 })
+    .withMessage('Duration must be between 1 and 30 days'),
   body('endDate')
+    .optional()
     .isISO8601()
     .withMessage('End date must be a valid date'),
-  body('meals')
-    .isArray()
-    .withMessage('Meals must be an array'),
+  body('days')
+    .isArray({ min: 1 })
+    .withMessage('Days must be a non-empty array'),
+  body('days').custom((days) => {
+    const invalidDay = days.find((day) => {
+      if (day.date && isNaN(Date.parse(day.date))) {
+        return true;
+      }
+      if (!day.meals || typeof day.meals !== 'object') {
+        return true;
+      }
+
+      const requiredMeals = ['breakfast', 'lunch', 'dinner'];
+      const missingMeal = requiredMeals.find((mealType) => {
+        const mealEntry = day.meals[mealType];
+
+        if (!mealEntry) {
+          return true;
+        }
+
+        if (typeof mealEntry === 'string') {
+          return !mongoose.Types.ObjectId.isValid(mealEntry);
+        }
+
+        return (
+          !mealEntry.meal ||
+          !mongoose.Types.ObjectId.isValid(mealEntry.meal)
+        );
+      });
+
+      if (missingMeal) {
+        return true;
+      }
+
+      if (day.meals.snacks) {
+        const invalidSnack = day.meals.snacks.find((snack) => {
+          if (typeof snack === 'string') {
+            return !mongoose.Types.ObjectId.isValid(snack);
+          }
+          return (
+            !snack.meal || !mongoose.Types.ObjectId.isValid(snack.meal)
+          );
+        });
+        if (invalidSnack) {
+          return true;
+        }
+      }
+
+      return false;
+    });
+
+    if (invalidDay) {
+      throw new Error(
+        'Each day must include a valid date and meals with breakfast, lunch, dinner (and optional snacks) pointing to valid meal IDs'
+      );
+    }
+
+    return true;
+  }),
+  body('targetNutrition')
+    .custom((value) => {
+      if (!value) {
+        throw new Error('targetNutrition is required');
+      }
+
+      const dailyCalories =
+        value.dailyCalories !== undefined ? value.dailyCalories : value.calories;
+
+      if (dailyCalories === undefined || isNaN(Number(dailyCalories))) {
+        throw new Error('targetNutrition.dailyCalories (or calories) must be provided as a number');
+      }
+
+      const macros = ['protein', 'carbohydrates', 'fats'];
+      const invalidMacro = macros.find(
+        (macro) =>
+          value[macro] !== undefined && isNaN(Number(value[macro]))
+      );
+
+      if (invalidMacro) {
+        throw new Error(`targetNutrition.${invalidMacro} must be a number`);
+      }
+
+      return true;
+    }),
   this.handleValidationErrors
 ];
 

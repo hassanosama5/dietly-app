@@ -12,7 +12,7 @@ exports.generalLimiter = rateLimit({
 
 // Auth rate limiter (stricter)
 exports.authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 , // 15 minutes
   max: 5, // limit each IP to 5 login attempts per windowMs
   message: {
     success: false,

@@ -22,6 +22,7 @@ const mealRoutes = require('./routes/mealRoutes');
 const mealPlanRoutes = require('./routes/mealPlanRoutes');
 const progressRoutes = require('./routes/progressRoutes');
 const recommendationRoutes = require('./routes/recommendationRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 // ==================== MIDDLEWARE SETUP ====================
 
@@ -51,6 +52,7 @@ app.use('/api/v1/meals', mealRoutes);
 app.use('/api/v1/meal-plans', mealPlanRoutes);
 app.use('/api/v1/progress', progressRoutes);
 app.use('/api/v1/recommendations', recommendationRoutes);
+app.use('/api/v1/admin', adminRoutes);
 
 // ==================== ERROR HANDLING ====================
 

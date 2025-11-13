@@ -22,6 +22,8 @@ exports.generateMealPlan = async (req, res) => {
     const targetCalories = user.dailyCalorieTarget || 2000;
     const start = startDate ? new Date(startDate) : new Date();
     start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(end.getDate() + duration - 1);
 
     // Calculate target nutrition using service (declarative: service call)
     const targetNutrition = nutritionService.calculateTargetNutrition(targetCalories);
@@ -98,6 +100,7 @@ exports.generateMealPlan = async (req, res) => {
     const mealPlan = await MealPlan.create({
       user: user._id,
       startDate: start,
+      endDate: end,
       duration,
       days,
       targetNutrition,
@@ -473,21 +476,114 @@ exports.createMealPlan = async (req, res) => {
 
     const start = new Date(startDate);
     start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(end.getDate() + duration - 1);
+
+    const normalizeMealEntry = (entry, mealType) => {
+      if (!entry) {
+        throw new Error(`Missing ${mealType} entry in meal plan day`);
+      }
+
+      if (typeof entry === "string") {
+        return {
+          meal: entry,
+          servings: 1,
+          consumed: false,
+        };
+      }
+
+      if (!entry.meal) {
+        throw new Error(`${mealType} entry must include a meal id`);
+      }
+
+      return {
+        meal: entry.meal,
+        servings: entry.servings || 1,
+        consumed: entry.consumed || false,
+        consumedAt: entry.consumedAt,
+      };
+    };
+
+    let normalizedDays;
+    try {
+      normalizedDays = days.map((day, index) => {
+        if (!day.meals) {
+          throw new Error(`Day ${index + 1} is missing meals`);
+        }
+
+        const date = day.date
+          ? new Date(day.date)
+          : new Date(start.getTime() + index * 24 * 60 * 60 * 1000);
+
+        if (isNaN(date.getTime())) {
+          throw new Error(`Day ${index + 1} has an invalid date`);
+        }
+
+        const snacks = Array.isArray(day.meals.snacks)
+          ? day.meals.snacks.map((snack) =>
+              normalizeMealEntry(snack, "snack")
+            )
+          : [];
+
+        return {
+          date,
+          meals: {
+            breakfast: normalizeMealEntry(day.meals.breakfast, "breakfast"),
+            lunch: normalizeMealEntry(day.meals.lunch, "lunch"),
+            dinner: normalizeMealEntry(day.meals.dinner, "dinner"),
+            snacks,
+          },
+          notes: day.notes,
+        };
+      });
+    } catch (normalizationError) {
+      return sendError(res, 400, normalizationError.message);
+    }
 
     // Calculate total meals for adherence
     let totalMeals = 0;
-    days.forEach((day) => {
+    normalizedDays.forEach((day) => {
       totalMeals += 3; // breakfast, lunch, dinner
-      totalMeals += (day.meals.snacks || []).length;
+      totalMeals += day.meals.snacks.length;
     });
+
+    const normalizedTargetNutrition = {
+      dailyCalories:
+        targetNutrition.dailyCalories !== undefined
+          ? Number(targetNutrition.dailyCalories)
+          : Number(targetNutrition.calories),
+      protein:
+        targetNutrition.protein !== undefined &&
+        targetNutrition.protein !== null
+          ? Number(targetNutrition.protein)
+          : undefined,
+      carbohydrates:
+        targetNutrition.carbohydrates !== undefined &&
+        targetNutrition.carbohydrates !== null
+          ? Number(targetNutrition.carbohydrates)
+          : undefined,
+      fats:
+        targetNutrition.fats !== undefined && targetNutrition.fats !== null
+          ? Number(targetNutrition.fats)
+          : undefined,
+    };
+
+    if (Number.isNaN(normalizedTargetNutrition.dailyCalories)) {
+      return sendError(
+        res,
+        400,
+        "targetNutrition.dailyCalories (or calories) must be provided as a number"
+      );
+    }
 
     const mealPlan = await MealPlan.create({
       user: user._id,
       name: name || `Meal Plan - ${new Date().toLocaleDateString()}`,
       startDate: start,
+       endDate: end,
       duration,
-      days,
-      targetNutrition,
+      days: normalizedDays,
+      targetNutrition: normalizedTargetNutrition,
       status: "active",
       generatedBy: "manual",
       adherence: {

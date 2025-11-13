@@ -38,7 +38,8 @@ const sendError = (res, statusCode, message, error = null) => {
   };
 
   // Only include error details in development
-  if (error && process.env.NODE_ENV === "development") {
+  const env = (process.env.NODE_ENV || "").toLowerCase();
+  if (error && env !== "production") {
     response.error = error;
   }
 

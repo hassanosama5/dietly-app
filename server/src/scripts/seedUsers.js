@@ -116,8 +116,8 @@ const seedUsers = async () => {
     await User.deleteMany({ email: { $in: sampleUsers.map((u) => u.email) } });
     console.log("🗑️  Cleared existing test users");
 
-    // Insert sample users
-    const createdUsers = await User.insertMany(sampleUsers);
+    // Insert sample users (use create to trigger pre-save hooks like password hashing)
+    const createdUsers = await User.create(sampleUsers);
     console.log(`✅ Created ${createdUsers.length} test users`);
 
     console.log("\n👤 Test User Credentials:");
