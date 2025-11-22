@@ -29,10 +29,25 @@ const MealPlanGenerator = ({ onPlanGenerated, onCancel }) => {
       }
     } catch (err) {
       console.error("Error generating meal plan:", err);
-      setError(
-        err.response?.data?.message ||
-          "Failed to generate meal plan. Please try again."
-      );
+      const errorData = err.response?.data;
+      let errorMessage = errorData?.message || "Failed to generate meal plan. Please try again.";
+      
+      // Add detailed error information if available
+      if (errorData?.details) {
+        const { missingMealTypes, availableCounts, suggestion } = errorData.details;
+        errorMessage += "\n\n";
+        if (missingMealTypes && missingMealTypes.length > 0) {
+          errorMessage += `Missing meal types: ${missingMealTypes.join(", ")}\n`;
+        }
+        if (availableCounts) {
+          errorMessage += `Available meals: Breakfast (${availableCounts.breakfast}), Lunch (${availableCounts.lunch}), Dinner (${availableCounts.dinner}), Snacks (${availableCounts.snack})\n`;
+        }
+        if (suggestion) {
+          errorMessage += `\n${suggestion}`;
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -62,7 +77,16 @@ const MealPlanGenerator = ({ onPlanGenerated, onCancel }) => {
 
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-800">{error}</p>
+            <p className="text-red-800 whitespace-pre-line">{error}</p>
+            <div className="mt-3 text-sm text-red-700">
+              <p className="font-semibold mb-1">Possible solutions:</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Check your profile dietary preferences - they may be too restrictive</li>
+                <li>Verify your allergies are correctly set</li>
+                <li>Contact support to add more meals to the database</li>
+                <li>Try adjusting your profile settings</li>
+              </ul>
+            </div>
           </div>
         )}
 

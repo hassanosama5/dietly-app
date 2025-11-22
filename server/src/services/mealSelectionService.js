@@ -31,13 +31,17 @@ const buildMealQuery = (user, mealType, targetCalories = null) => {
     query.allergens = { $nin: user.allergies };
   }
 
-  // Optional calorie filtering
+  // Optional calorie filtering - make it more flexible
   if (targetCalories) {
-    const calorieRange = targetCalories * 0.2; // 20% variance
+    // Use 50% variance instead of 20% to be more flexible
+    const calorieRange = targetCalories * 0.5; // 50% variance (more flexible)
+    const minCalories = Math.max(0, targetCalories - calorieRange);
+    const maxCalories = targetCalories + calorieRange;
     query["nutrition.calories"] = {
-      $gte: targetCalories - calorieRange,
-      $lte: targetCalories + calorieRange,
+      $gte: minCalories,
+      $lte: maxCalories,
     };
+    console.log(`  📊 Calorie filter for ${mealType}: ${minCalories.toFixed(0)} - ${maxCalories.toFixed(0)} calories`);
   }
 
   return query;
@@ -45,26 +49,60 @@ const buildMealQuery = (user, mealType, targetCalories = null) => {
 
 /**
  * Select meals for user based on preferences
- * Combines imperative and declarative approaches
+ * Combines imperative and declarative approaches with progressive fallback
  * @param {Object} user - User object
  * @param {string} mealType - Type of meal
  * @param {number} targetCalories - Target calories (optional)
  * @returns {Promise<Array>} Array of available meals
  */
 const selectMealsForUser = async (user, mealType, targetCalories = null) => {
-  // Build query (declarative)
-  const query = buildMealQuery(user, mealType, targetCalories);
+  console.log(`\n🔍 Selecting ${mealType} meals...`);
+  
+  // Try 1: Full preferences with calorie constraints
+  let query = buildMealQuery(user, mealType, targetCalories);
+  console.log(`  Query 1 (full preferences + calories):`, JSON.stringify(query, null, 2));
+  let availableMeals = await Meal.find(query);
+  console.log(`  Found ${availableMeals.length} meals`);
 
-  // Get available meals (imperative: async operation)
-  const availableMeals = await Meal.find(query);
+  // Try 2: Full preferences without calorie constraints
+  if (availableMeals.length === 0 && targetCalories) {
+    console.log(`  ⚠️  No meals with calorie constraints, trying without...`);
+    query = buildMealQuery(user, mealType, null);
+    console.log(`  Query 2 (full preferences, no calories):`, JSON.stringify(query, null, 2));
+    availableMeals = await Meal.find(query);
+    console.log(`  Found ${availableMeals.length} meals`);
+  }
 
-  // Fallback logic if no meals found (imperative)
+  // Try 3: Only respect allergies, ignore dietary preferences
   if (availableMeals.length === 0) {
+    console.log(`  ⚠️  No meals with dietary preferences, trying without preferences...`);
     const fallbackQuery = { mealType, isActive: true };
     if (user.allergies && user.allergies.length > 0) {
       fallbackQuery.allergens = { $nin: user.allergies };
     }
-    return await Meal.find(fallbackQuery);
+    console.log(`  Query 3 (only allergies):`, JSON.stringify(fallbackQuery, null, 2));
+    availableMeals = await Meal.find(fallbackQuery);
+    console.log(`  Found ${availableMeals.length} meals`);
+  }
+
+  // Try 4: Ignore allergies too if still no meals (for critical meal types)
+  if (availableMeals.length === 0 && (mealType === "breakfast" || mealType === "lunch" || mealType === "dinner")) {
+    console.log(`  ⚠️  Critical meal type - trying without allergies...`);
+    availableMeals = await Meal.find({ mealType, isActive: true });
+    console.log(`  Found ${availableMeals.length} meals (ignoring allergies)`);
+  }
+
+  // Try 5: Last resort - any active meal of this type
+  if (availableMeals.length === 0) {
+    console.log(`  ⚠️  Last resort: any active ${mealType} meal`);
+    availableMeals = await Meal.find({ mealType, isActive: true });
+    console.log(`  Found ${availableMeals.length} meals`);
+  }
+
+  // Final check: if still no meals, check if ANY meals exist for this type
+  if (availableMeals.length === 0) {
+    const totalMealsOfType = await Meal.countDocuments({ mealType, isActive: true });
+    console.log(`  ❌ No meals found! Total ${mealType} meals in DB: ${totalMealsOfType}`);
   }
 
   return availableMeals;

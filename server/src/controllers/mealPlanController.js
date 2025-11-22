@@ -28,22 +28,61 @@ exports.generateMealPlan = async (req, res) => {
     // Calculate target nutrition using service (declarative: service call)
     const targetNutrition = nutritionService.calculateTargetNutrition(targetCalories);
 
+    // Debug: Log user info
+    console.log("🔍 Meal Plan Generation Debug:");
+    console.log("User ID:", user._id);
+    console.log("Target Calories:", targetCalories);
+    console.log("Dietary Preferences:", user.dietaryPreferences || "None");
+    console.log("Allergies:", user.allergies || "None");
+    console.log("Health Goal:", user.healthGoal);
+    console.log("Activity Level:", user.activityLevel);
+
     // Get available meals for each meal type using service (declarative composition)
-    const [breakfastMeals, lunchMeals, dinnerMeals, snackMeals] = await Promise.all([
+    // Try with calorie constraints first, then without if needed
+    let [breakfastMeals, lunchMeals, dinnerMeals, snackMeals] = await Promise.all([
       mealSelectionService.selectMealsForUser(user, "breakfast", targetCalories * 0.25),
       mealSelectionService.selectMealsForUser(user, "lunch", targetCalories * 0.35),
       mealSelectionService.selectMealsForUser(user, "dinner", targetCalories * 0.35),
       mealSelectionService.selectMealsForUser(user, "snack", targetCalories * 0.05),
     ]);
 
-    if (
-      breakfastMeals.length === 0 ||
-      lunchMeals.length === 0 ||
-      dinnerMeals.length === 0
-    ) {
+    console.log("📊 Initial meal counts:");
+    console.log("Breakfast:", breakfastMeals.length);
+    console.log("Lunch:", lunchMeals.length);
+    console.log("Dinner:", dinnerMeals.length);
+    console.log("Snacks:", snackMeals.length);
+
+    // If any meal type has no meals, try without calorie constraints
+    if (breakfastMeals.length === 0 || lunchMeals.length === 0 || dinnerMeals.length === 0) {
+      console.log("⚠️  No meals found with calorie constraints, trying without constraints...");
+      [breakfastMeals, lunchMeals, dinnerMeals, snackMeals] = await Promise.all([
+        mealSelectionService.selectMealsForUser(user, "breakfast", null),
+        mealSelectionService.selectMealsForUser(user, "lunch", null),
+        mealSelectionService.selectMealsForUser(user, "dinner", null),
+        mealSelectionService.selectMealsForUser(user, "snack", null),
+      ]);
+    }
+
+    // Build detailed error message if still no meals
+    if (breakfastMeals.length === 0 || lunchMeals.length === 0 || dinnerMeals.length === 0) {
+      const missingTypes = [];
+      if (breakfastMeals.length === 0) missingTypes.push("breakfast");
+      if (lunchMeals.length === 0) missingTypes.push("lunch");
+      if (dinnerMeals.length === 0) missingTypes.push("dinner");
+
       return res.status(400).json({
         success: false,
         message: "Not enough meals available for your dietary preferences",
+        details: {
+          missingMealTypes: missingTypes,
+          availableCounts: {
+            breakfast: breakfastMeals.length,
+            lunch: lunchMeals.length,
+            dinner: dinnerMeals.length,
+            snack: snackMeals.length,
+          },
+          suggestion: "Please adjust your dietary preferences or add more meals to the database",
+        },
       });
     }
 

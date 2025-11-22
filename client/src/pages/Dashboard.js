@@ -1,5 +1,6 @@
 // src/pages/Dashboard/Dashboard.jsx
 import React from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const Dashboard = () => {
@@ -98,20 +99,30 @@ const Dashboard = () => {
           <div className="mt-6">
             <h3 className="text-lg font-medium mb-2">Quick Actions</h3>
             <div className="space-y-2">
-              <button
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full text-left disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={!isProfileComplete}
+              <Link
+                to="/meal-plans"
+                className={`block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full text-left ${
+                  !isProfileComplete
+                    ? "opacity-50 cursor-not-allowed pointer-events-none"
+                    : ""
+                }`}
               >
                 {isProfileComplete
-                  ? "Generate Meal Plan"
+                  ? "📅 Meal Plans"
                   : "Complete Profile to Generate Meal Plan"}
-              </button>
-              <button className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 w-full text-left">
-                Track Progress
-              </button>
-              <button className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 w-full text-left">
-                Update Profile
-              </button>
+              </Link>
+              <Link
+                to="/meals"
+                className="block bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 w-full text-left"
+              >
+                🍽️ Browse Meals
+              </Link>
+              <Link
+                to="/progress"
+                className="block bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 w-full text-left"
+              >
+                📊 Track Progress
+              </Link>
             </div>
           </div>
         </div>
