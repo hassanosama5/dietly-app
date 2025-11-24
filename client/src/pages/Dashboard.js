@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import CircularProgress from "../components/landing/CircularProgress";
+import CalorieRing from "../components/landing/CalorieRing";
 import StepCircle from "../components/landing/StepCircle";
 import FeatureCard from "../components/landing/FeatureCard";
 import { Button } from "../components/ui/button";
@@ -19,7 +19,14 @@ const Dashboard = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const isGoalAchieved = user?.currentWeight === user?.targetWeight;
+  // Sample calorie data - In production, this would come from today's meal consumption
+  const calorieData = {
+    totalCalories: user?.dailyCalorieTarget || 2000,
+    breakfast: 450,   // Example: eggs and toast
+    lunch: 650,       // Example: chicken salad
+    dinner: 0,        // Not yet consumed
+    snacks: 200       // Example: fruit and nuts
+  };
 
   return (
     <div className="min-h-screen bg-[#0D0D0D] text-white">
@@ -105,14 +112,16 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Right Column - Data Visualization */}
+            {/* Right Column - Calorie Tracking */}
             <div className="flex items-center justify-center">
               <Card className="bg-[#1A1A1A] border-white/[0.05] rounded-3xl shadow-2xl">
-                <CardContent className="p-12">
-                  <CircularProgress
-                    value={`${user?.currentWeight || 80} kg`}
-                    label="Current Weight"
-                    isGoalAchieved={isGoalAchieved}
+                <CardContent className="p-10">
+                  <CalorieRing
+                    totalCalories={calorieData.totalCalories}
+                    breakfast={calorieData.breakfast}
+                    lunch={calorieData.lunch}
+                    dinner={calorieData.dinner}
+                    snacks={calorieData.snacks}
                   />
                 </CardContent>
               </Card>
