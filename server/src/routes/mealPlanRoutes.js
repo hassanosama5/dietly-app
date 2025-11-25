@@ -12,6 +12,8 @@ const {
   getMealPlanNutrition,
   getMealPlanProgress,
   getMealPlanSummary,
+  stopMealPlan,
+  getDailyMealStatus,
 } = require('../controllers/mealPlanController');
 const { protect } = require('../middleware/auth');
 const { validateMealPlan, validateId } = require('../middleware/validation');
@@ -47,6 +49,11 @@ router.get('/progress/:id', protect, validateId, getMealPlanProgress);
 // @access  Private
 router.get('/summary/:id', protect, validateId, getMealPlanSummary);
 
+// @desc    Get meal status for a single day
+// @route   GET /api/v1/meal-plans/:id/daily-status
+// @access  Private
+router.get('/:id/daily-status', protect, validateId, getDailyMealStatus);
+
 // Dynamic routes
 // @desc    Get specific meal plan details
 // @route   GET /api/v1/meal-plans/:id
@@ -67,6 +74,11 @@ router.delete('/:id', protect, validateId, deleteMealPlan);
 // @route   PUT /api/v1/meal-plans/:id/consume
 // @access  Private
 router.put('/:id/consume', protect, validateId, markMealConsumed);
+
+// @desc    Stop an active meal plan
+// @route   PUT /api/v1/meal-plans/:id/stop
+// @access  Private
+router.put('/:id/stop', protect, validateId, stopMealPlan);
 
 // Legacy routes for compatibility
 // @desc    Mark meal as consumed (alternative route)
