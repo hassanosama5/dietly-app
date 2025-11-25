@@ -1,5 +1,6 @@
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
 const calorieService = require("../services/calorieService");
 const { sendSuccess, sendError } = require("../utils/responseHandler");
 const { validateRequired, validateEmail, validatePassword } = require("../utils/validationHelper");
@@ -99,6 +100,8 @@ exports.register = async (req, res) => {
       dietaryPreferences: dietaryPreferences || [],
       allergies: allergies || [],
     });
+
+    console.log("New user created:", user._id.toString(), user.email);
 
     // Generate token (imperative)
     const token = generateToken(user._id);
@@ -208,6 +211,7 @@ exports.updateProfile = async (req, res) => {
       "activityLevel",
       "dietaryPreferences",
       "allergies",
+      "profileSetupComplete",
     ];
 
     // Declarative: reduce to build update object

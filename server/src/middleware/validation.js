@@ -27,7 +27,7 @@ exports.validateRegister = [
   body('password')
     .isLength({ min: 6 })
     .withMessage('Password must be at least 6 characters'),
-  this.handleValidationErrors
+  exports.handleValidationErrors
 ];
 
 exports.validateLogin = [
@@ -37,7 +37,7 @@ exports.validateLogin = [
   body('password')
     .exists()
     .withMessage('Password is required'),
-  this.handleValidationErrors
+  exports.handleValidationErrors
 ];
 
 // User validation rules
@@ -58,7 +58,7 @@ exports.validateUserUpdate = [
     .optional()
     .isArray()
     .withMessage('Allergies must be an array'),
-  this.handleValidationErrors
+  exports.handleValidationErrors
 ];
 
 // Meal validation rules
@@ -111,7 +111,7 @@ exports.validateMeal = [
   body('mealType')
     .isIn(['breakfast', 'lunch', 'dinner', 'snack'])
     .withMessage('Meal type must be breakfast, lunch, dinner, or snack'),
-  this.handleValidationErrors
+  exports.handleValidationErrors
 ];
 
 // Meal Plan validation rules
@@ -210,7 +210,7 @@ exports.validateMealPlan = [
 
       return true;
     }),
-  this.handleValidationErrors
+  exports.handleValidationErrors
 ];
 
 // Progress validation rules
@@ -230,7 +230,7 @@ exports.validateProgress = [
     .optional()
     .isInt({ min: 1, max: 10 })
     .withMessage('Energy level must be between 1 and 10'),
-  this.handleValidationErrors
+  exports.handleValidationErrors
 ];
 
 // ID validation
@@ -238,5 +238,5 @@ exports.validateId = [
   param('id')
     .isMongoId()
     .withMessage('Invalid ID format'),
-  this.handleValidationErrors
+  exports.handleValidationErrors
 ];

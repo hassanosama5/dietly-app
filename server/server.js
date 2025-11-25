@@ -4,14 +4,9 @@ const app = require("./src/app");
 
 const PORT = process.env.PORT || 5000;
 
-// Check if DATABASE and DATABASE_PASSWORD are set
+// Check if DATABASE is set
 if (!process.env.DATABASE) {
   console.error("❌ DATABASE environment variable is not set!");
-  process.exit(1);
-}
-
-if (!process.env.DATABASE_PASSWORD) {
-  console.error("❌ DATABASE_PASSWORD environment variable is not set!");
   process.exit(1);
 }
 
@@ -26,6 +21,13 @@ if (DB && DB.includes("<PASSWORD>")) {
 } else if (DB) {
   // If no <PASSWORD> placeholder, assume password is already in the string
   console.log("ℹ️  Using full connection string from DATABASE");
+}
+
+// Ensure a database name is present in the connection string
+const defaultDbName = process.env.DB_NAME || "dietly";
+const hasExplicitDb = /mongodb\.net\/[^?]+\?/.test(DB);
+if (!hasExplicitDb) {
+  DB = DB.replace("mongodb.net/?", `mongodb.net/${defaultDbName}?`);
 }
 
 // Debug: Show connection string (without password for security)
