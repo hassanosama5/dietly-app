@@ -1,14 +1,17 @@
 // client/src/components/layout/DashboardLayout.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { Button } from "../ui/button";
+import { User, Settings, LogOut } from "lucide-react";
 
 const DashboardLayout = ({ children }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+const dropdownRef = useRef(null);
 
   // Handle scroll effect
   useEffect(() => {
@@ -17,7 +20,33 @@ const DashboardLayout = ({ children }) => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  return (
+  useEffect(() => {
+  const handleClickOutside = (event) => {
+    if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      setIsDropdownOpen(false);
+    }
+  };
+  document.addEventListener("mousedown", handleClickOutside);
+  return () => document.removeEventListener("mousedown", handleClickOutside);
+}, []);
+
+  const handleLogout = () => {
+  logout();
+  navigate("/login");
+  setIsDropdownOpen(false);
+};
+
+const handleProfileClick = () => {
+  navigate("/profile");
+  setIsDropdownOpen(false);
+};
+
+const handleSettingsClick = () => {
+  navigate("/settings");
+  setIsDropdownOpen(false);
+};
+
+return (
     <div className="min-h-screen bg-white text-black">
       {/* ==================== NAVIGATION ==================== */}
       <nav
@@ -92,19 +121,58 @@ const DashboardLayout = ({ children }) => {
                 My Plans
               </Button>
 
-              {/* Profile Button */}
-              <Button
-                onClick={() => navigate("/profile-setup")}
-                variant="ghost"
-                size="sm"
-                className="w-10 h-10 rounded-full p-0 flex items-center justify-center overflow-hidden"
-              >
-                <img
-                  src="/default-profile.svg"
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                />
-              </Button>
+              {/* Profile Dropdown */}
+<div className="relative" ref={dropdownRef}>
+  <Button
+    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+    variant="ghost"
+    size="sm"
+    className="w-10 h-10 rounded-full p-0 flex items-center justify-center overflow-hidden hover:ring-2 hover:ring-[#246608] transition-all"
+  >
+    <img
+      src="/default-profile.svg"
+      alt="Profile"
+      className="w-full h-full object-cover"
+    />
+  </Button>
+
+  {isDropdownOpen && (
+    <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50 font-poppins">
+      <div className="px-4 py-3 border-b border-gray-100">
+        <p className="text-sm font-semibold text-gray-900">{user?.name || "User"}</p>
+        <p className="text-xs text-gray-500 truncate">{user?.email || "user@example.com"}</p>
+      </div>
+
+      <div className="py-1">
+        <button
+          onClick={handleProfileClick}
+          className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-[#246608]/10 flex items-center space-x-3 transition-colors"
+        >
+          <User className="w-4 h-4 text-[#246608]" />
+          <span className="font-medium">Profile</span>
+        </button>
+
+        <button
+          onClick={handleSettingsClick}
+          className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-[#246608]/10 flex items-center space-x-3 transition-colors"
+        >
+          <Settings className="w-4 h-4 text-[#246608]" />
+          <span className="font-medium">Settings</span>
+        </button>
+      </div>
+
+      <div className="border-t border-gray-100 pt-1">
+        <button
+          onClick={handleLogout}
+          className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-3 transition-colors"
+        >
+          <LogOut className="w-4 h-4" />
+          <span className="font-medium">Log Out</span>
+        </button>
+      </div>
+    </div>
+  )}
+</div>
             </div>
           </div>
         </div>

@@ -13,6 +13,8 @@ import Register from "./pages/auth/Register";
 import DashboardUser from "./pages/DashboardUser";
 import DashboardGuest from "./pages/DashboardGuest";
 import ProfileSetup from "./pages/profile/ProfileSetup";
+import Profile from "./pages/profile/Profile";
+import Settings from "./pages/Settings";
 import Meals from "./pages/Meals";
 import MealDetailPage from "./pages/MealDetailPage";
 import Progress from "./pages/Progress";
@@ -79,6 +81,28 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            {/* Profile Page */}
+<Route
+  path="/profile"
+  element={
+    <ProtectedRoute>
+      <DashboardLayout>
+        <Profile />
+      </DashboardLayout>
+    </ProtectedRoute>
+  }
+/>
+{/* Settings Page */}
+<Route
+  path="/settings"
+  element={
+    <ProtectedRoute>
+      <DashboardLayout>
+        <Settings />
+      </DashboardLayout>
+    </ProtectedRoute>
+  }
+/>
 
             {/* Guest Dashboard */}
             <Route
