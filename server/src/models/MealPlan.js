@@ -27,10 +27,45 @@ const MealPlanSchema = new mongoose.Schema({
     max: 30,
   },
 
+  weeklyMealOptions: [
+    {
+      weekNumber: { type: Number, required: true },
+      breakfastOptions: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Meal",
+          required: true,
+        },
+      ],
+      lunchOptions: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Meal",
+          required: true,
+        },
+      ],
+      dinnerOptions: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Meal",
+          required: true,
+        },
+      ],
+      snackOptions: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Meal",
+          required: true,
+        },
+      ],
+    },
+  ],
+
   // Daily Structure
   days: [
     {
       date: { type: Date, required: true },
+      weekNumber: { type: Number, required: true, default: 1 },
       meals: {
         breakfast: {
           meal: {
@@ -75,6 +110,11 @@ const MealPlanSchema = new mongoose.Schema({
         type: String,
         maxlength: 300,
       },
+      calorieSummary: {
+        targetCalories: { type: Number, required: true, default: 0 },
+        consumedCalories: { type: Number, default: 0 },
+        lastUpdated: Date,
+      },
     },
   ],
 
@@ -97,10 +137,17 @@ const MealPlanSchema = new mongoose.Schema({
     enum: ["auto", "manual", "ai"],
     default: "auto",
   },
+  stoppedAt: Date,
   adherence: {
     totalMeals: { type: Number, default: 0 },
     consumedMeals: { type: Number, default: 0 },
     adherencePercentage: { type: Number, default: 0, min: 0, max: 100 },
+  },
+  calorieRing: {
+    targetDailyCalories: { type: Number, default: 0 },
+    activeDate: Date,
+    consumedCalories: { type: Number, default: 0 },
+    completionPercentage: { type: Number, default: 0, min: 0, max: 100 },
   },
 
   // Timestamps
