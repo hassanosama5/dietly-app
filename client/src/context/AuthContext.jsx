@@ -14,7 +14,8 @@ export const AuthProvider = ({ children }) => {
   const checkProfileCompletion = (userData) => {
     if (!userData) return false;
 
-    const requiredFields = [
+    // Base required fields for all goals
+    const baseRequiredFields = [
       "age",
       "gender",
       "height",
@@ -24,7 +25,8 @@ export const AuthProvider = ({ children }) => {
       "activityLevel",
     ];
 
-    const complete = requiredFields.every(
+    // Check if all base fields are present
+    const hasBaseFields = baseRequiredFields.every(
       (field) =>
         userData[field] !== undefined &&
         userData[field] !== null &&
@@ -32,8 +34,40 @@ export const AuthProvider = ({ children }) => {
         !(typeof userData[field] === "number" && isNaN(userData[field]))
     );
 
-    setIsProfileComplete(complete);
-    return complete;
+    // If base fields are missing, profile is not complete
+    if (!hasBaseFields) {
+      setIsProfileComplete(false);
+      return false;
+    }
+
+    // Profile completion logic based on goal:
+    // - For "maintain": Complete after step 4 (when profileSetupComplete flag is set)
+    // - For "lose" or "gain": Complete after step 5 (when profileSetupComplete flag is set)
+    const healthGoal = userData.healthGoal;
+    
+    let isComplete = false;
+    
+    if (healthGoal === "maintain") {
+      // For "maintain" goal: Complete after step 4 (when profileSetupComplete is true)
+      isComplete = hasBaseFields && userData.profileSetupComplete === true;
+    } else if (healthGoal === "lose" || healthGoal === "gain") {
+      // For "lose" or "gain" goal: Complete after step 5
+      // Check if profileSetupComplete flag is set (indicates step 5 was completed)
+      isComplete = hasBaseFields && userData.profileSetupComplete === true;
+    } else {
+      // Default: Complete if base fields are present and setup is complete
+      isComplete = hasBaseFields && userData.profileSetupComplete === true;
+    }
+
+    console.log("Profile completion check:", {
+      healthGoal,
+      hasBaseFields,
+      profileSetupComplete: userData.profileSetupComplete,
+      isComplete
+    });
+
+    setIsProfileComplete(isComplete);
+    return isComplete;
   };
 
   // Fetch user on mount if token exists

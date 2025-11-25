@@ -59,7 +59,7 @@ const Register = () => {
     const { confirmPassword, ...registerData } = formData;
     const result = await register(registerData);
 
-    if (result.success) navigate("/user-dashboard", { replace: true });
+    if (result.success) navigate("/profile-setup", { replace: true });
     else setIsSubmitting(false);
   };
 
