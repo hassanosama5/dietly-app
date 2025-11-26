@@ -1117,3 +1117,250 @@ exports.getMealPlanSummary = async (req, res) => {
   }
 };
 
+// @desc    Get adherence analytics (streaks, meal type breakdown, weekly stats)
+// @route   GET /api/v1/meal-plans/adherence-analytics
+// @access  Private
+exports.getAdherenceAnalytics = async (req, res) => {
+  try {
+    const { days = 30 } = req.query;
+    const daysNum = parseInt(days);
+
+    // Calculate start date
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - daysNum);
+    startDate.setHours(0, 0, 0, 0);
+
+    // Get all meal plans within date range
+    const mealPlans = await MealPlan.find({
+      user: req.user.id,
+      status: { $in: ['active', 'completed'] },
+      startDate: { $gte: startDate },
+    }).sort({ startDate: 1 });
+
+    if (mealPlans.length === 0) {
+      return sendSuccess(res, 200, {
+        hasData: false,
+        message: "No meal plan data available in this time period",
+      });
+    }
+
+    // Collect all days from all meal plans
+    const allDays = [];
+    mealPlans.forEach(plan => {
+      plan.days.forEach(day => {
+        allDays.push({
+          date: day.date,
+          meals: day.meals,
+          planName: plan.name,
+        });
+      });
+    });
+
+    // Sort by date
+    allDays.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    // Calculate daily adherence for each day
+    const dailyAdherence = allDays.map(day => {
+      const totalMeals = 3 + (day.meals.snacks?.length || 0); // breakfast, lunch, dinner + snacks
+      let consumedMeals = 0;
+
+      if (day.meals.breakfast?.consumed) consumedMeals++;
+      if (day.meals.lunch?.consumed) consumedMeals++;
+      if (day.meals.dinner?.consumed) consumedMeals++;
+      (day.meals.snacks || []).forEach(snack => {
+        if (snack.consumed) consumedMeals++;
+      });
+
+      const adherencePercentage = totalMeals > 0 ? (consumedMeals / totalMeals) * 100 : 0;
+
+      return {
+        date: day.date,
+        totalMeals,
+        consumedMeals,
+        adherencePercentage: Math.round(adherencePercentage),
+        meetsThreshold: adherencePercentage >= 70, // 70% fixed threshold
+      };
+    });
+
+    // Calculate current streak (consecutive days with ≥70% adherence)
+    let currentStreak = 0;
+    let longestStreak = 0;
+    let tempStreak = 0;
+
+    // Iterate from most recent to oldest for current streak
+    for (let i = dailyAdherence.length - 1; i >= 0; i--) {
+      const day = dailyAdherence[i];
+      const dayDate = new Date(day.date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Only count toward current streak if it's today or earlier
+      if (dayDate <= today) {
+        if (day.meetsThreshold) {
+          if (i === dailyAdherence.length - 1) {
+            currentStreak++; // Start counting current streak
+          }
+          tempStreak++;
+        } else {
+          if (i === dailyAdherence.length - 1) {
+            currentStreak = 0; // Broken today
+          }
+          break; // Stop counting current streak
+        }
+      }
+    }
+
+    // Calculate longest streak
+    tempStreak = 0;
+    dailyAdherence.forEach(day => {
+      if (day.meetsThreshold) {
+        tempStreak++;
+        longestStreak = Math.max(longestStreak, tempStreak);
+      } else {
+        tempStreak = 0;
+      }
+    });
+
+    // Calculate meal type breakdown
+    const mealTypeStats = {
+      breakfast: { total: 0, consumed: 0, percentage: 0 },
+      lunch: { total: 0, consumed: 0, percentage: 0 },
+      dinner: { total: 0, consumed: 0, percentage: 0 },
+      snacks: { total: 0, consumed: 0, percentage: 0 },
+    };
+
+    allDays.forEach(day => {
+      // Breakfast
+      mealTypeStats.breakfast.total++;
+      if (day.meals.breakfast?.consumed) mealTypeStats.breakfast.consumed++;
+
+      // Lunch
+      mealTypeStats.lunch.total++;
+      if (day.meals.lunch?.consumed) mealTypeStats.lunch.consumed++;
+
+      // Dinner
+      mealTypeStats.dinner.total++;
+      if (day.meals.dinner?.consumed) mealTypeStats.dinner.consumed++;
+
+      // Snacks
+      const snackCount = day.meals.snacks?.length || 0;
+      mealTypeStats.snacks.total += snackCount;
+      (day.meals.snacks || []).forEach(snack => {
+        if (snack.consumed) mealTypeStats.snacks.consumed++;
+      });
+    });
+
+    // Calculate percentages
+    Object.keys(mealTypeStats).forEach(type => {
+      const stats = mealTypeStats[type];
+      stats.percentage = stats.total > 0
+        ? Math.round((stats.consumed / stats.total) * 100)
+        : 0;
+    });
+
+    // Calculate weekly adherence (group by week)
+    const weeklyAdherence = [];
+    let weekStart = null;
+    let weekDays = [];
+
+    dailyAdherence.forEach((day, index) => {
+      const dayDate = new Date(day.date);
+      const dayOfWeek = dayDate.getDay(); // 0 = Sunday
+
+      // Start new week on Sunday or first day
+      if (weekStart === null || dayOfWeek === 0) {
+        if (weekDays.length > 0) {
+          // Save previous week
+          const avgAdherence = weekDays.reduce((sum, d) => sum + d.adherencePercentage, 0) / weekDays.length;
+          weeklyAdherence.push({
+            weekStart: weekStart,
+            weekEnd: weekDays[weekDays.length - 1].date,
+            avgAdherence: Math.round(avgAdherence),
+            daysCount: weekDays.length,
+          });
+        }
+        weekStart = day.date;
+        weekDays = [day];
+      } else {
+        weekDays.push(day);
+      }
+
+      // Handle last week
+      if (index === dailyAdherence.length - 1 && weekDays.length > 0) {
+        const avgAdherence = weekDays.reduce((sum, d) => sum + d.adherencePercentage, 0) / weekDays.length;
+        weeklyAdherence.push({
+          weekStart: weekStart,
+          weekEnd: day.date,
+          avgAdherence: Math.round(avgAdherence),
+          daysCount: weekDays.length,
+        });
+      }
+    });
+
+    // Find best and worst days of week
+    const dayOfWeekStats = Array(7).fill(null).map(() => ({
+      count: 0,
+      totalAdherence: 0,
+      avgAdherence: 0,
+    }));
+
+    dailyAdherence.forEach(day => {
+      const dayOfWeek = new Date(day.date).getDay();
+      dayOfWeekStats[dayOfWeek].count++;
+      dayOfWeekStats[dayOfWeek].totalAdherence += day.adherencePercentage;
+    });
+
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayOfWeekBreakdown = dayOfWeekStats.map((stats, index) => ({
+      day: dayNames[index],
+      avgAdherence: stats.count > 0 ? Math.round(stats.totalAdherence / stats.count) : 0,
+      count: stats.count,
+    })).filter(d => d.count > 0); // Only include days with data
+
+    // Sort to find best and worst
+    const sortedDays = [...dayOfWeekBreakdown].sort((a, b) => b.avgAdherence - a.avgAdherence);
+    const bestDay = sortedDays[0] || null;
+    const worstDay = sortedDays[sortedDays.length - 1] || null;
+
+    // Calculate overall stats
+    const overallAdherence = dailyAdherence.length > 0
+      ? Math.round(dailyAdherence.reduce((sum, d) => sum + d.adherencePercentage, 0) / dailyAdherence.length)
+      : 0;
+
+    const analytics = {
+      hasData: true,
+      summary: {
+        overallAdherence,
+        totalDays: dailyAdherence.length,
+        daysAboveThreshold: dailyAdherence.filter(d => d.meetsThreshold).length,
+        currentStreak,
+        longestStreak,
+      },
+      streaks: {
+        current: currentStreak,
+        longest: longestStreak,
+        threshold: 70,
+        message: currentStreak > 0
+          ? `🔥 ${currentStreak}-day streak! Keep it up!`
+          : "Start a new streak by maintaining 70%+ adherence!",
+      },
+      mealTypeBreakdown: mealTypeStats,
+      weeklyAdherence,
+      dayOfWeekBreakdown,
+      patterns: {
+        bestDay: bestDay ? `${bestDay.day} (${bestDay.avgAdherence}%)` : "N/A",
+        worstDay: worstDay ? `${worstDay.day} (${worstDay.avgAdherence}%)` : "N/A",
+        insight: bestDay && worstDay
+          ? `You're most consistent on ${bestDay.day}s and struggle on ${worstDay.day}s.`
+          : "Keep tracking to identify patterns!",
+      },
+      dailyData: dailyAdherence, // For calendar heatmap
+    };
+
+    return sendSuccess(res, 200, analytics);
+  } catch (error) {
+    console.error("Get adherence analytics error:", error);
+    return sendError(res, 500, "Server error calculating adherence analytics", error.message);
+  }
+};
+

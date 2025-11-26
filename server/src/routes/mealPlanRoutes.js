@@ -14,6 +14,7 @@ const {
   getMealPlanSummary,
   stopMealPlan,
   getDailyMealStatus,
+  getAdherenceAnalytics,
 } = require('../controllers/mealPlanController');
 const { protect } = require('../middleware/auth');
 const { validateMealPlan, validateId } = require('../middleware/validation');
@@ -38,6 +39,11 @@ router.post('/generate', protect, generateMealPlan);
 // @route   GET /api/v1/meal-plans/current
 // @access  Private
 router.get('/current', protect, getCurrentMealPlan);
+
+// @desc    Get adherence analytics (streaks, meal breakdown, patterns)
+// @route   GET /api/v1/meal-plans/adherence-analytics
+// @access  Private
+router.get('/adherence-analytics', protect, getAdherenceAnalytics);
 
 // @desc    Get adherence progress for plan
 // @route   GET /api/v1/meal-plans/progress/:id

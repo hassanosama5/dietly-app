@@ -426,3 +426,376 @@ exports.addProgressPhotos = async (req, res) => {
   }
 };
 
+// @desc    Get weigh-in status (Sunday-based tracking)
+// @route   GET /api/v1/progress/weigh-in-status
+// @access  Private
+exports.getWeighInStatus = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return sendError(res, 404, "User not found");
+    }
+
+    // Get the last weigh-in
+    const lastWeighIn = await Progress.findOne({ user: req.user.id })
+      .sort({ date: -1 })
+      .limit(1);
+
+    const today = new Date();
+    const currentDay = today.getDay(); // 0 = Sunday, 6 = Saturday
+
+    // Calculate days until next Sunday
+    const daysUntilSunday = currentDay === 0 ? 0 : 7 - currentDay;
+
+    // Calculate next Sunday date
+    const nextSunday = new Date(today);
+    nextSunday.setDate(today.getDate() + daysUntilSunday);
+    nextSunday.setHours(0, 0, 0, 0);
+
+    // Check if user can weigh-in
+    let canWeighIn = false;
+    let message = "";
+
+    if (currentDay === 0) {
+      // It's Sunday
+      if (!lastWeighIn) {
+        canWeighIn = true;
+        message = "Welcome! Log your first weight entry.";
+      } else {
+        // Check if last weigh-in was before this Sunday
+        const thisSunday = new Date(today);
+        thisSunday.setHours(0, 0, 0, 0);
+
+        if (lastWeighIn.date < thisSunday) {
+          canWeighIn = true;
+          message = "It's Sunday! Time for your weekly weigh-in.";
+        } else {
+          canWeighIn = false;
+          message = "You've already weighed in this week. Next weigh-in is next Sunday.";
+        }
+      }
+    } else {
+      canWeighIn = false;
+      message = `Next weigh-in is on ${nextSunday.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}`;
+    }
+
+    const status = {
+      canWeighIn,
+      isSunday: currentDay === 0,
+      daysUntilNextWeighIn: daysUntilSunday,
+      nextWeighInDate: nextSunday,
+      lastWeighInDate: lastWeighIn ? lastWeighIn.date : null,
+      lastWeight: lastWeighIn ? lastWeighIn.weight : null,
+      message,
+    };
+
+    return sendSuccess(res, 200, status);
+  } catch (error) {
+    console.error("Get weigh-in status error:", error);
+    return sendError(res, 500, "Server error checking weigh-in status", error.message);
+  }
+};
+
+// @desc    Get goal progress with hybrid projections
+// @route   GET /api/v1/progress/goal-progress
+// @access  Private
+exports.getGoalProgress = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return sendError(res, 404, "User not found");
+    }
+
+    // Check if user has target weight set
+    if (!user.targetWeight) {
+      return sendSuccess(res, 200, {
+        hasGoal: false,
+        message: "No target weight set. Please update your profile to set a goal.",
+      });
+    }
+
+    // Get all progress entries
+    const progressEntries = await Progress.find({ user: req.user.id })
+      .sort({ date: 1 })
+      .select("date weight");
+
+    if (progressEntries.length === 0) {
+      return sendSuccess(res, 200, {
+        hasGoal: true,
+        hasData: false,
+        message: "No progress data yet. Log your first weight entry!",
+        goal: {
+          startWeight: user.currentWeight,
+          currentWeight: user.currentWeight,
+          targetWeight: user.targetWeight,
+          healthGoal: user.healthGoal,
+        },
+      });
+    }
+
+    const startWeight = progressEntries[0].weight;
+    const currentWeight = user.currentWeight || progressEntries[progressEntries.length - 1].weight;
+    const targetWeight = user.targetWeight;
+    const healthGoal = user.healthGoal; // 'lose', 'gain', 'maintain'
+
+    // Calculate basic progress
+    const totalChange = currentWeight - startWeight;
+    const targetChange = targetWeight - startWeight;
+    const remainingChange = targetWeight - currentWeight;
+
+    // Progress percentage (handle division by zero)
+    const progressPercentage = targetChange !== 0
+      ? Math.max(0, Math.min(100, ((currentWeight - startWeight) / targetChange) * 100))
+      : 0;
+
+    // Calculate weekly changes (only use entries that are at least 7 days apart)
+    const weeklyChanges = [];
+    for (let i = 1; i < progressEntries.length; i++) {
+      const prevEntry = progressEntries[i - 1];
+      const currEntry = progressEntries[i];
+      const daysDiff = Math.round((currEntry.date - prevEntry.date) / (1000 * 60 * 60 * 24));
+
+      if (daysDiff >= 7) {
+        const weeksDiff = daysDiff / 7;
+        const weightChange = currEntry.weight - prevEntry.weight;
+        const weeklyRate = weightChange / weeksDiff;
+        weeklyChanges.push(weeklyRate);
+      }
+    }
+
+    // Calculate average weekly change
+    const avgWeeklyChange = weeklyChanges.length > 0
+      ? weeklyChanges.reduce((sum, change) => sum + change, 0) / weeklyChanges.length
+      : 0;
+
+    // HYBRID PROJECTION SCENARIOS
+    const projections = {
+      optimistic: null,
+      realistic: null,
+      conservative: null,
+    };
+
+    // Only calculate projections if making progress toward goal
+    const isProgressingTowardGoal =
+      (healthGoal === 'lose' && avgWeeklyChange < 0) ||
+      (healthGoal === 'gain' && avgWeeklyChange > 0);
+
+    if (isProgressingTowardGoal && Math.abs(avgWeeklyChange) > 0.05) {
+      // Optimistic: Based on best 3 weekly changes
+      const sortedChanges = [...weeklyChanges].sort((a, b) => {
+        if (healthGoal === 'lose') return a - b; // Most negative (most loss)
+        return b - a; // Most positive (most gain)
+      });
+      const bestChanges = sortedChanges.slice(0, Math.min(3, sortedChanges.length));
+      const optimisticRate = bestChanges.length > 0
+        ? bestChanges.reduce((sum, c) => sum + c, 0) / bestChanges.length
+        : avgWeeklyChange;
+
+      const optimisticWeeks = Math.abs(remainingChange / optimisticRate);
+      const optimisticDate = new Date();
+      optimisticDate.setDate(optimisticDate.getDate() + Math.ceil(optimisticWeeks * 7));
+
+      projections.optimistic = {
+        weeksToGoal: Math.round(optimisticWeeks * 10) / 10,
+        estimatedDate: optimisticDate,
+        weeklyRate: Math.round(optimisticRate * 100) / 100,
+        description: "Based on your best weekly changes",
+      };
+
+      // Realistic: Based on average weekly change
+      const realisticWeeks = Math.abs(remainingChange / avgWeeklyChange);
+      const realisticDate = new Date();
+      realisticDate.setDate(realisticDate.getDate() + Math.ceil(realisticWeeks * 7));
+
+      projections.realistic = {
+        weeksToGoal: Math.round(realisticWeeks * 10) / 10,
+        estimatedDate: realisticDate,
+        weeklyRate: Math.round(avgWeeklyChange * 100) / 100,
+        description: "Based on your average rate of progress",
+      };
+
+      // Conservative: Reduce average rate by 30% (accounts for plateaus)
+      const conservativeRate = avgWeeklyChange * 0.7;
+      const conservativeWeeks = Math.abs(remainingChange / conservativeRate);
+      const conservativeDate = new Date();
+      conservativeDate.setDate(conservativeDate.getDate() + Math.ceil(conservativeWeeks * 7));
+
+      projections.conservative = {
+        weeksToGoal: Math.round(conservativeWeeks * 10) / 10,
+        estimatedDate: conservativeDate,
+        weeklyRate: Math.round(conservativeRate * 100) / 100,
+        description: "Conservative estimate accounting for potential plateaus",
+      };
+    }
+
+    const goalProgress = {
+      hasGoal: true,
+      hasData: true,
+      goal: {
+        startWeight,
+        currentWeight,
+        targetWeight,
+        healthGoal,
+      },
+      progress: {
+        totalChange: Math.round(totalChange * 100) / 100,
+        remainingChange: Math.round(remainingChange * 100) / 100,
+        progressPercentage: Math.round(progressPercentage * 10) / 10,
+        avgWeeklyChange: Math.round(avgWeeklyChange * 100) / 100,
+        totalWeeks: progressEntries.length,
+      },
+      projections,
+      insights: {
+        isOnTrack: isProgressingTowardGoal,
+        message: isProgressingTowardGoal
+          ? `You're making progress! Keep it up!`
+          : progressEntries.length < 3
+          ? "Keep logging your weight to see projections."
+          : `Progress seems slow. Consider reviewing your meal plan adherence or adjusting your goals.`,
+      },
+    };
+
+    return sendSuccess(res, 200, goalProgress);
+  } catch (error) {
+    console.error("Get goal progress error:", error);
+    return sendError(res, 500, "Server error calculating goal progress", error.message);
+  }
+};
+
+// @desc    Get correlation between adherence and weight progress
+// @route   GET /api/v1/progress/correlations
+// @access  Private
+exports.getCorrelations = async (req, res) => {
+  try {
+    const MealPlan = require("../models/MealPlan");
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return sendError(res, 404, "User not found");
+    }
+
+    // Get all completed or active meal plans
+    const mealPlans = await MealPlan.find({
+      user: req.user.id,
+      status: { $in: ['completed', 'active'] },
+    }).sort({ startDate: 1 });
+
+    // Get all progress entries
+    const progressEntries = await Progress.find({ user: req.user.id })
+      .sort({ date: 1 });
+
+    if (mealPlans.length === 0 || progressEntries.length < 2) {
+      return sendSuccess(res, 200, {
+        hasData: false,
+        message: "Insufficient data for correlation analysis. Complete at least one meal plan and log multiple weight entries.",
+      });
+    }
+
+    // Analyze weekly adherence vs weight change
+    const weeklyData = [];
+
+    mealPlans.forEach(plan => {
+      const planStartDate = new Date(plan.startDate);
+      const planEndDate = new Date(plan.endDate);
+
+      // Get weight at start of plan
+      const startWeight = progressEntries.find(p => {
+        const pDate = new Date(p.date);
+        return pDate >= planStartDate;
+      });
+
+      // Get weight at end of plan (or closest after)
+      const endWeight = progressEntries.find(p => {
+        const pDate = new Date(p.date);
+        return pDate >= planEndDate;
+      });
+
+      if (startWeight && endWeight) {
+        const weightChange = endWeight.weight - startWeight.weight;
+        const adherencePercentage = plan.adherence.adherencePercentage || 0;
+
+        weeklyData.push({
+          planName: plan.name,
+          adherence: adherencePercentage,
+          weightChange: Math.round(weightChange * 100) / 100,
+          startDate: planStartDate,
+          endDate: planEndDate,
+        });
+      }
+    });
+
+    if (weeklyData.length === 0) {
+      return sendSuccess(res, 200, {
+        hasData: false,
+        message: "Unable to correlate data. Ensure you have weight entries at the start and end of meal plans.",
+      });
+    }
+
+    // Group by adherence level
+    const highAdherence = weeklyData.filter(d => d.adherence >= 85);
+    const mediumAdherence = weeklyData.filter(d => d.adherence >= 70 && d.adherence < 85);
+    const lowAdherence = weeklyData.filter(d => d.adherence < 70);
+
+    const calculateAvgWeightChange = (data) => {
+      if (data.length === 0) return 0;
+      const sum = data.reduce((acc, d) => acc + d.weightChange, 0);
+      return Math.round((sum / data.length) * 100) / 100;
+    };
+
+    const insights = {
+      highAdherence: {
+        count: highAdherence.length,
+        avgWeightChange: calculateAvgWeightChange(highAdherence),
+        label: "High Adherence (85%+)",
+      },
+      mediumAdherence: {
+        count: mediumAdherence.length,
+        avgWeightChange: calculateAvgWeightChange(mediumAdherence),
+        label: "Medium Adherence (70-84%)",
+      },
+      lowAdherence: {
+        count: lowAdherence.length,
+        avgWeightChange: calculateAvgWeightChange(lowAdherence),
+        label: "Low Adherence (<70%)",
+      },
+    };
+
+    // Generate insight message
+    let message = "";
+    const healthGoal = user.healthGoal;
+
+    if (highAdherence.length > 0 && lowAdherence.length > 0) {
+      const diff = Math.abs(insights.highAdherence.avgWeightChange - insights.lowAdherence.avgWeightChange);
+
+      if (healthGoal === 'lose') {
+        message = `Weeks with 85%+ adherence resulted in ${Math.abs(insights.highAdherence.avgWeightChange)}kg average loss, `;
+        message += `compared to ${Math.abs(insights.lowAdherence.avgWeightChange)}kg with low adherence. `;
+        message += `High adherence makes a ${diff.toFixed(1)}kg difference!`;
+      } else if (healthGoal === 'gain') {
+        message = `Weeks with 85%+ adherence resulted in ${Math.abs(insights.highAdherence.avgWeightChange)}kg average gain, `;
+        message += `compared to ${Math.abs(insights.lowAdherence.avgWeightChange)}kg with low adherence. `;
+        message += `High adherence makes a ${diff.toFixed(1)}kg difference!`;
+      }
+    } else {
+      message = "Keep tracking to build more correlation insights!";
+    }
+
+    const correlations = {
+      hasData: true,
+      weeklyData,
+      insights,
+      summary: {
+        totalPlans: weeklyData.length,
+        avgAdherence: Math.round(weeklyData.reduce((sum, d) => sum + d.adherence, 0) / weeklyData.length),
+        avgWeightChange: calculateAvgWeightChange(weeklyData),
+        message,
+      },
+    };
+
+    return sendSuccess(res, 200, correlations);
+  } catch (error) {
+    console.error("Get correlations error:", error);
+    return sendError(res, 500, "Server error calculating correlations", error.message);
+  }
+};
+

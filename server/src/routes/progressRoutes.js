@@ -10,6 +10,9 @@ const {
   getLatestProgress,
   getProgressTrends,
   addProgressPhotos,
+  getWeighInStatus,
+  getGoalProgress,
+  getCorrelations,
 } = require('../controllers/progressController');
 const { protect } = require('../middleware/auth');
 const { validateProgress, validateId } = require('../middleware/validation');
@@ -39,6 +42,21 @@ router.get('/trends', protect, getProgressTrends);
 // @route   GET /api/v1/progress/latest
 // @access  Private
 router.get('/latest', protect, getLatestProgress);
+
+// @desc    Get weigh-in status (Sunday-based)
+// @route   GET /api/v1/progress/weigh-in-status
+// @access  Private
+router.get('/weigh-in-status', protect, getWeighInStatus);
+
+// @desc    Get goal progress with projections
+// @route   GET /api/v1/progress/goal-progress
+// @access  Private
+router.get('/goal-progress', protect, getGoalProgress);
+
+// @desc    Get correlations between adherence and weight
+// @route   GET /api/v1/progress/correlations
+// @access  Private
+router.get('/correlations', protect, getCorrelations);
 
 // Dynamic routes
 // @desc    Get specific progress entry
