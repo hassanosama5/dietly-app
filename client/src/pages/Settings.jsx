@@ -219,7 +219,9 @@ const Settings = () => {
 
             <div className="space-y-3">
               {/* Change Password */}
-              <button className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+              <button
+               onClick={() => navigate("/change-password")}
+               className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                 <div className="flex items-center space-x-3">
                   <Lock className="w-5 h-5 text-gray-600" />
                   <div className="text-left">

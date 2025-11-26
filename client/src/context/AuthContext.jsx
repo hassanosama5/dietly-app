@@ -165,7 +165,7 @@ export const AuthProvider = ({ children }) => {
       setIsProfileComplete(false);
       setError(null);
       // Optional: force redirect to guest
-      window.location.href = "/guest";
+      window.location.href = "/dashboard";
     }
   };
 

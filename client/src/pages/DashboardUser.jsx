@@ -48,7 +48,7 @@ const dropdownRef = useRef(null);
 
   const handleLogout = () => {
   logout();
-  navigate("/login");
+  navigate("/dashboard");
   setIsDropdownOpen(false);
 };
 

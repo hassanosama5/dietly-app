@@ -30,9 +30,9 @@ const dropdownRef = useRef(null);
   return () => document.removeEventListener("mousedown", handleClickOutside);
 }, []);
 
-  const handleLogout = () => {
+ const handleLogout = () => {
   logout();
-  navigate("/login");
+  navigate("/dashboard");
   setIsDropdownOpen(false);
 };
 
