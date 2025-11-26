@@ -20,18 +20,21 @@ const ProfileSetup = () => {
   const [targetWeight, setTargetWeight] = useState("");
   const [currentWeightKg, setCurrentWeightKg] = useState("");
   const [targetWeightKg, setTargetWeightKg] = useState("");
-  const [heightUnit, setHeightUnit] = useState("imperial");
-  const [weightUnit, setWeightUnit] = useState("imperial");
+  const [heightUnit, setHeightUnit] = useState("metric");
+  const [weightUnit, setWeightUnit] = useState("metric");
   const [weeklyGoal, setWeeklyGoal] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [dietaryPreferences, setDietaryPreferences] = useState([]);
+  const [allergies, setAllergies] = useState([]);
 
   useEffect(() => {
-    clearJustRegistered();
-  }, [clearJustRegistered]);
+    if (user) {
+      clearJustRegistered();
+    }
+  }, [clearJustRegistered, user]);
 
-  // Set default weekly goal when step 5 is reached
   useEffect(() => {
-    if (currentStep === 5 && !weeklyGoal && selectedGoal) {
+    if (currentStep === 7 && !weeklyGoal && selectedGoal) {
       if (selectedGoal === "lose" || selectedGoal === "gain") {
         setWeeklyGoal("0.25");
       } else {
@@ -74,6 +77,42 @@ const ProfileSetup = () => {
       value: "very_active",
     },
   ];
+
+  const dietOptions = [
+    "vegetarian",
+    "vegan",
+    "pescatarian",
+    "keto",
+    "paleo",
+    "low-carb",
+    "high-protein",
+    "gluten-free",
+    "dairy-free",
+  ];
+
+  const allergyOptions = [
+    "nuts",
+    "peanuts",
+    "dairy",
+    "eggs",
+    "gluten",
+    "soy",
+    "fish",
+    "shellfish",
+    "wheat",
+  ];
+
+  const toggleDiet = (value) => {
+    setDietaryPreferences((prev) =>
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
+    );
+  };
+
+  const toggleAllergy = (value) => {
+    setAllergies((prev) =>
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
+    );
+  };
 
   const handleGoalSelect = (goalValue) => {
     setSelectedGoal(goalValue);
@@ -139,6 +178,22 @@ const ProfileSetup = () => {
       setIsSubmitting(false);
       setCurrentStep(3);
     } else if (currentStep === 3) {
+      setIsSubmitting(true);
+      if (user) {
+        const profileData = { dietaryPreferences };
+        await updateProfile(profileData);
+      }
+      setIsSubmitting(false);
+      setCurrentStep(4);
+    } else if (currentStep === 4) {
+      setIsSubmitting(true);
+      if (user) {
+        const profileData = { allergies };
+        await updateProfile(profileData);
+      }
+      setIsSubmitting(false);
+      setCurrentStep(5);
+    } else if (currentStep === 5) {
       // Step 3: Personal information
       if (!selectedGender || !age) {
         return;
@@ -158,53 +213,28 @@ const ProfileSetup = () => {
         await updateProfile(profileData);
       }
       setIsSubmitting(false);
-      setCurrentStep(4);
-    } else if (currentStep === 4) {
+      setCurrentStep(6);
+    } else if (currentStep === 6) {
       // Step 4: Height and weight
       
-      // Validate weight inputs
-      if (weightUnit === "imperial") {
-        if (!currentWeight || !targetWeight || parseFloat(currentWeight) <= 0 || parseFloat(targetWeight) <= 0) {
-          alert("Please enter valid weight values");
-          return;
-        }
-      } else {
-        if (!currentWeightKg || !targetWeightKg || parseFloat(currentWeightKg) <= 0 || parseFloat(targetWeightKg) <= 0) {
-          alert("Please enter valid weight values");
-          return;
-        }
+      // Validate weight inputs (kg only)
+      if (!currentWeightKg || !targetWeightKg || parseFloat(currentWeightKg) <= 0 || parseFloat(targetWeightKg) <= 0) {
+        alert("Please enter valid weight values in kilograms");
+        return;
       }
       
-      // Validate height inputs
-      if (heightUnit === "imperial") {
-        if (!heightFeet || !heightInches || parseFloat(heightFeet) < 0 || parseFloat(heightInches) < 0) {
-          alert("Please enter valid height values");
-          return;
-        }
-      } else {
-        if (!heightCm || parseFloat(heightCm) <= 0) {
-          alert("Please enter a valid height");
-          return;
-        }
+      // Validate height input (cm only)
+      if (!heightCm || parseFloat(heightCm) <= 0) {
+        alert("Please enter a valid height in centimeters");
+        return;
       }
       
       // Convert height to cm
-      let heightInCm;
-      if (heightUnit === "imperial") {
-        heightInCm = feetInchesToCm(heightFeet, heightInches);
-      } else {
-        heightInCm = parseFloat(heightCm);
-      }
+      const heightInCm = parseFloat(heightCm);
 
-      // Convert weight to kg
-      let currentWeightKgValue, targetWeightKgValue;
-      if (weightUnit === "imperial") {
-        currentWeightKgValue = lbsToKg(currentWeight);
-        targetWeightKgValue = lbsToKg(targetWeight);
-      } else {
-        currentWeightKgValue = parseFloat(currentWeightKg);
-        targetWeightKgValue = parseFloat(targetWeightKg);
-      }
+      // Weight already in kg
+      const currentWeightKgValue = parseFloat(currentWeightKg);
+      const targetWeightKgValue = parseFloat(targetWeightKg);
 
       const ageNumber = parseInt(age);
       
@@ -237,7 +267,7 @@ const ProfileSetup = () => {
               window.location.replace("/user-dashboard");
             }, 2000);
           } else {
-            setCurrentStep(5);
+            setCurrentStep(7);
           }
         } else {
           if (selectedGoal === "maintain") {
@@ -250,7 +280,7 @@ const ProfileSetup = () => {
             }
           } else {
             setIsSubmitting(false);
-            setCurrentStep(5);
+            setCurrentStep(7);
           }
         }
       } catch (error) {
@@ -258,8 +288,8 @@ const ProfileSetup = () => {
         alert("Failed to save profile. Please try again.");
         setIsSubmitting(false);
       }
-    } else if (currentStep === 5) {
-      // Step 5: Weekly goal selection
+    } else if (currentStep === 7) {
+      // Step 7: Weekly goal selection
       if (!weeklyGoal) {
         return;
       }
@@ -293,6 +323,8 @@ const ProfileSetup = () => {
         healthGoal: selectedGoal,
         activityLevel: selectedActivityLevel,
         weeklyGoal: parseFloat(weeklyGoal),
+        dietaryPreferences,
+        allergies,
         profileSetupComplete: true,
       };
       
@@ -333,18 +365,18 @@ const ProfileSetup = () => {
       setCurrentStep(3);
     } else if (currentStep === 5) {
       setCurrentStep(4);
+    } else if (currentStep === 6) {
+      setCurrentStep(5);
+    } else if (currentStep === 7) {
+      setCurrentStep(6);
     }
   };
 
   const userName = user?.name?.split(" ")[0] || "there";
 
   const isMaintainGoal = selectedGoal === "maintain";
-  const progressPercentage = 
-    currentStep === 1 ? 20 : 
-    currentStep === 2 ? 40 : 
-    currentStep === 3 ? 60 : 
-    currentStep === 4 ? (isMaintainGoal ? 100 : 80) :
-    100;
+  const totalSteps = isMaintainGoal ? 6 : 7;
+  const progressPercentage = Math.round((currentStep / totalSteps) * 100);
 
   const getWeeklyGoalOptions = () => {
     if (selectedGoal === "lose") {
@@ -468,8 +500,63 @@ const ProfileSetup = () => {
               </>
             )}
 
-            {/* Step 3: Personal Information */}
             {currentStep === 3 && (
+              <>
+                <div className="space-y-6 mb-8">
+                  <h1 className="text-2xl font-bold mb-2 text-gray-900 text-center">Dietary Preferences</h1>
+                  <p className="text-gray-500 mb-8 text-base text-center">Select any that apply to you.</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {dietOptions.map((opt) => {
+                      const active = dietaryPreferences.includes(opt);
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => toggleDiet(opt)}
+                          className={`py-3 px-4 rounded-lg border-2 transition-all duration-200 ${
+                            active
+                              ? "border-[#246608] bg-[#246608]/10 text-[#246608] font-medium"
+                              : "border-gray-200 hover:border-[#246608]/60 text-gray-700"
+                          }`}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {currentStep === 4 && (
+              <>
+                <div className="space-y-6 mb-8">
+                  <h1 className="text-2xl font-bold mb-2 text-gray-900 text-center">Allergies</h1>
+                  <p className="text-gray-500 mb-8 text-base text-center">Select any allergies you have.</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {allergyOptions.map((opt) => {
+                      const active = allergies.includes(opt);
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => toggleAllergy(opt)}
+                          className={`py-3 px-4 rounded-lg border-2 transition-all duration-200 ${
+                            active
+                              ? "border-[#246608] bg-[#246608]/10 text-[#246608] font-medium"
+                              : "border-gray-200 hover:border-[#246608]/60 text-gray-700"
+                          }`}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {currentStep === 5 && (
               <>
                 <div className="space-y-6 mb-8">
                   {/* Gender Selection */}
@@ -566,8 +653,8 @@ const ProfileSetup = () => {
               </>
             )}
 
-            {/* Step 4: Height and Weight */}
-            {currentStep === 4 && (
+            {/* Step 6: Height and Weight */}
+            {currentStep === 6 && (
               <>
                 <div className="space-y-6 mb-8">
                   {/* Height Section */}
@@ -575,90 +662,22 @@ const ProfileSetup = () => {
                     <h2 className="text-lg font-bold mb-4 text-gray-900">
                       How tall are you?
                     </h2>
-                    {heightUnit === "imperial" ? (
-                      <>
-                        <div className="flex gap-4 mb-2">
-                          <div className="flex-1">
-                            <div className="relative">
-                              <input
-                                type="number"
-                                value={heightFeet}
-                                onChange={(e) => setHeightFeet(e.target.value)}
-                                placeholder="Height (feet)"
-                                min="0"
-                                max="8"
-                                className="w-full py-3 px-4 pr-12 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#246608] focus:border-[#246608]"
-                              />
-                              <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none">
-                                ft
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex-1">
-                            <div className="relative">
-                              <input
-                                type="number"
-                                value={heightInches}
-                                onChange={(e) => setHeightInches(e.target.value)}
-                                placeholder="Height (inches)"
-                                min="0"
-                                max="11"
-                                className="w-full py-3 px-4 pr-12 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#246608] focus:border-[#246608]"
-                              />
-                              <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none">
-                                in
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (heightFeet && heightInches) {
-                              const cm = feetInchesToCm(heightFeet, heightInches);
-                              setHeightCm(Math.round(cm).toString());
-                            }
-                            setHeightUnit("metric");
-                          }}
-                          className="text-[#246608] text-sm hover:underline"
-                        >
-                          Change units to centimeters
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <div className="relative mb-2">
-                          <input
-                            type="number"
-                            value={heightCm}
-                            onChange={(e) => setHeightCm(e.target.value)}
-                            placeholder="Height (cm)"
-                            min="0"
-                            className="w-full py-3 px-4 pr-12 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#246608] focus:border-[#246608]"
-                          />
-                          <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none">
-                            cm
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (heightCm) {
-                              const { feet, inches } = cmToFeetInches(heightCm);
-                              setHeightFeet(feet.toString());
-                              setHeightInches(inches.toString());
-                            }
-                            setHeightUnit("imperial");
-                          }}
-                          className="text-[#246608] text-sm hover:underline"
-                        >
-                          Change units to feet and inches
-                        </button>
-                      </>
-                    )}
+                    <div className="relative mb-2">
+                      <input
+                        type="number"
+                        value={heightCm}
+                        onChange={(e) => setHeightCm(e.target.value)}
+                        placeholder="Height (cm)"
+                        min="0"
+                        className="w-full py-3 px-4 pr-12 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#246608] focus:border-[#246608]"
+                      />
+                      <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none">
+                        cm
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Current Weight Section */}
+                  {/* Current Weight Section (kg only) */}
                   <div>
                     <h2 className="text-lg font-bold mb-2 text-gray-900">
                       How much do you weigh?
@@ -666,75 +685,20 @@ const ProfileSetup = () => {
                     <p className="text-sm text-gray-500 mb-4">
                       It's OK to estimate. You can update this later.
                     </p>
-                    {weightUnit === "imperial" ? (
-                      <>
-                        <div className="relative mb-2">
-                          <input
-                            type="number"
-                            value={currentWeight}
-                            onChange={(e) => setCurrentWeight(e.target.value)}
-                            placeholder="Current weight"
-                            min="0"
-                            step="0.1"
-                            className="w-full py-3 px-4 pr-12 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#246608] focus:border-[#246608]"
-                          />
-                          <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none">
-                            lbs
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (currentWeight) {
-                              const kg = lbsToKg(currentWeight);
-                              setCurrentWeightKg(Math.round(kg * 10) / 10);
-                            }
-                            if (targetWeight) {
-                              const kg = lbsToKg(targetWeight);
-                              setTargetWeightKg(Math.round(kg * 10) / 10);
-                            }
-                            setWeightUnit("metric");
-                          }}
-                          className="text-[#246608] text-sm hover:underline"
-                        >
-                          Change units to kilograms/stone
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <div className="relative mb-2">
-                          <input
-                            type="number"
-                            value={currentWeightKg}
-                            onChange={(e) => setCurrentWeightKg(e.target.value)}
-                            placeholder="Current weight"
-                            min="0"
-                            step="0.1"
-                            className="w-full py-3 px-4 pr-12 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#246608] focus:border-[#246608]"
-                          />
-                          <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none">
-                            kg
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (currentWeightKg) {
-                              const lbs = kgToLbs(currentWeightKg);
-                              setCurrentWeight(Math.round(lbs * 10) / 10);
-                            }
-                            if (targetWeightKg) {
-                              const lbs = kgToLbs(targetWeightKg);
-                              setTargetWeight(Math.round(lbs * 10) / 10);
-                            }
-                            setWeightUnit("imperial");
-                          }}
-                          className="text-[#246608] text-sm hover:underline"
-                        >
-                          Change units to pounds
-                        </button>
-                      </>
-                    )}
+                    <div className="relative mb-2">
+                      <input
+                        type="number"
+                        value={currentWeightKg}
+                        onChange={(e) => setCurrentWeightKg(e.target.value)}
+                        placeholder="Current weight"
+                        min="0"
+                        step="0.1"
+                        className="w-full py-3 px-4 pr-12 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#246608] focus:border-[#246608]"
+                      />
+                      <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none">
+                        kg
+                      </span>
+                    </div>
                   </div>
 
                   {/* Target Weight Section */}
@@ -748,21 +712,15 @@ const ProfileSetup = () => {
                     <div className="relative">
                       <input
                         type="number"
-                        value={weightUnit === "imperial" ? targetWeight : targetWeightKg}
-                        onChange={(e) => {
-                          if (weightUnit === "imperial") {
-                            setTargetWeight(e.target.value);
-                          } else {
-                            setTargetWeightKg(e.target.value);
-                          }
-                        }}
+                        value={targetWeightKg}
+                        onChange={(e) => setTargetWeightKg(e.target.value)}
                         placeholder="Goal weight"
                         min="0"
                         step="0.1"
                         className="w-full py-3 px-4 pr-12 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#246608] focus:border-[#246608]"
                       />
                       <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none">
-                        {weightUnit === "imperial" ? "lbs" : "kg"}
+                        kg
                       </span>
                     </div>
                   </div>
@@ -770,8 +728,8 @@ const ProfileSetup = () => {
               </>
             )}
 
-            {/* Step 5: Weekly Goal Selection */}
-            {currentStep === 5 && (
+            {/* Weekly Goal Selection */}
+            {currentStep === 7 && (
               <>
                 {/* Title */}
                 <h1 className="text-2xl font-bold mb-2 text-gray-900 text-center">
@@ -824,18 +782,7 @@ const ProfileSetup = () => {
               <Button
                 type="button"
                 onClick={handleNext}
-                disabled={
-                  (currentStep === 1 && !selectedGoal) ||
-                  (currentStep === 2 && !selectedActivityLevel) ||
-                  (currentStep === 3 && (!selectedGender || !age)) ||
-                  (currentStep === 4 && 
-                    ((weightUnit === "imperial" && (!currentWeight || !targetWeight)) ||
-                     (weightUnit === "metric" && (!currentWeightKg || !targetWeightKg)) ||
-                     (heightUnit === "imperial" && (!heightFeet || !heightInches)) ||
-                     (heightUnit === "metric" && !heightCm))) ||
-                  (currentStep === 5 && !weeklyGoal) ||
-                  isSubmitting
-                }
+                disabled={isSubmitting}
                 className="flex-1 bg-[#246608] hover:bg-[#246608]/90 text-white rounded-lg py-3 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? "Saving..." : "NEXT"}
