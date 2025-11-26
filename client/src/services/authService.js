@@ -10,6 +10,7 @@ export const authService = {
 
   updateProfile: (data) => api.put("/auth/updatedetails", data),
 
+  // Change password
   changePassword: (data) => api.put("/auth/updatepassword", data),
 
   forgotPassword: (email) => api.post("/auth/forgotpassword", { email }),

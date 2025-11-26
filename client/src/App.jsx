@@ -15,6 +15,7 @@ import DashboardGuest from "./pages/DashboardGuest";
 import ProfileSetup from "./pages/profile/ProfileSetup";
 import Profile from "./pages/profile/Profile";
 import Settings from "./pages/Settings";
+import ChangePassword from "./pages/ChangePassword";
 import Meals from "./pages/Meals";
 import MealDetailPage from "./pages/MealDetailPage";
 import Progress from "./pages/Progress";
@@ -234,7 +235,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             {/* Settings Page */}
             <Route
               path="/settings"
@@ -246,14 +246,13 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
-            {/* Chatbot Page - PROTECTED (Logged-in users only) */}
+            {/* Change Password Page */}
             <Route
-              path="/chatbot"
+              path="/change-password"
               element={
                 <ProtectedRoute>
                   <DashboardLayout>
-                    <Chatbot />
+                    <ChangePassword />
                   </DashboardLayout>
                 </ProtectedRoute>
               }

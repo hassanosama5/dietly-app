@@ -8,6 +8,9 @@ export const userService = {
   // Update profile - connects to YOUR authController.js updateProfile()
   updateProfile: (data) => api.put("/users/profile/update", data),
 
+  // Update user profile - connects to YOUR authController.js updateProfile()
+  updateProfile: (data) => api.put("/users/profile/update", data),
+
   // Calculate nutrition - connects to YOUR userController.js calculateNutrition()
   calculateNutrition: () => api.get("/users/profile/nutrition"),
 

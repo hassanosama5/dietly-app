@@ -60,10 +60,17 @@ const Dashboard = () => {
   }, [user]);
 
   const handleLogout = () => {
+<<<<<<< HEAD
     logout();
     navigate("/login");
     setIsDropdownOpen(false);
   };
+=======
+  logout();
+  navigate("/dashboard");
+  setIsDropdownOpen(false);
+};
+>>>>>>> navbar
 
   const handleProfileClick = () => {
     navigate("/profile");

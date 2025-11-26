@@ -30,11 +30,19 @@ const DashboardLayout = ({ children }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+<<<<<<< HEAD
   const handleLogout = () => {
     logout();
     navigate("/login");
     setIsDropdownOpen(false);
   };
+=======
+ const handleLogout = () => {
+  logout();
+  navigate("/dashboard");
+  setIsDropdownOpen(false);
+};
+>>>>>>> navbar
 
   const handleProfileClick = () => {
     navigate("/profile");

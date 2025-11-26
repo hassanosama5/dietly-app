@@ -167,7 +167,7 @@ export const AuthProvider = ({ children }) => {
       setJustRegistered(false);
       setPendingRegistration(null);
       // Optional: force redirect to guest
-      window.location.href = "/";
+      window.location.href = "/dashboard";
     }
   };
 
