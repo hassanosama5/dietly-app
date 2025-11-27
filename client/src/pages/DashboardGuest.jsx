@@ -92,6 +92,9 @@ const DashboardGuest = () => {
 
   return (
     <div className="min-h-screen bg-white text-black">
+      <div className="absolute left-0 top-40 w-96 h-96 bg-green-200 rounded-full blur-[120px] opacity-40" />
+      <div className="absolute right-0 top-20 w-96 h-96 bg-lime-300 rounded-full blur-[130px] opacity-30" />
+
       {/* ==================== NAVIGATION ==================== */}
       <nav
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -386,10 +389,7 @@ const DashboardGuest = () => {
       </section>
 
       {/* ==================== BMI CALCULATOR SECTION ==================== */}
-      <section
-        id="bmi-calculator"
-        className="relative py-20 bg-gradient-to-br from-gray-50 to-white"
-      >
+      <section id="bmi-calculator" className="relative py-20 bg-[#F6F9F6]">
         <div className="max-w-[1200px] mx-auto px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* Left Column - Calculator */}
