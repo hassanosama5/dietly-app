@@ -17,7 +17,7 @@ exports.getMeals = async (req, res) => {
       minProtein,
       search,
       page = 1,
-      limit = 20,
+      limit = 500,
     } = req.query;
 
     // Build query (declarative: functional composition)

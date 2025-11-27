@@ -62,28 +62,26 @@ exports.validateUserUpdate = [
 ];
 
 // Meal validation rules
+// Meal validation rules
 exports.validateMeal = [
   body('name')
     .notEmpty()
     .withMessage('Meal name is required'),
-  body()
+
+  // Validate nutrition object matches Mongoose schema
+  body('nutrition')
     .custom((value, { req }) => {
-      const { calories, protein, carbs, fat } = req.body;
       const nutrition = req.body.nutrition || {};
 
       const checks = [
-        { name: 'calories', topLevel: calories, nested: nutrition.calories },
-        { name: 'protein', topLevel: protein, nested: nutrition.protein },
-        { name: 'carbs', topLevel: carbs, nested: nutrition.carbohydrates },
-        { name: 'fat', topLevel: fat, nested: nutrition.fats }
+        { name: 'calories', value: nutrition.calories },
+        { name: 'protein', value: nutrition.protein },
+        { name: 'carbohydrates', value: nutrition.carbohydrates },
+        { name: 'fats', value: nutrition.fats },
       ];
 
-      const missing = checks.filter(
-        (field) =>
-          field.topLevel === undefined &&
-          field.nested === undefined
-      );
-
+      // Missing required fields
+      const missing = checks.filter((field) => field.value === undefined);
       if (missing.length) {
         throw new Error(
           `Missing required nutrition fields: ${missing
@@ -92,12 +90,8 @@ exports.validateMeal = [
         );
       }
 
-      const invalid = checks.filter((field) => {
-        const valueToCheck =
-          field.topLevel !== undefined ? field.topLevel : field.nested;
-        return isNaN(Number(valueToCheck));
-      });
-
+      // Validate numeric values
+      const invalid = checks.filter((field) => isNaN(Number(field.value)));
       if (invalid.length) {
         throw new Error(
           `Nutrition fields must be numeric: ${invalid
@@ -108,11 +102,16 @@ exports.validateMeal = [
 
       return true;
     }),
+
   body('mealType')
     .isIn(['breakfast', 'lunch', 'dinner', 'snack'])
-    .withMessage('Meal type must be breakfast, lunch, dinner, or snack'),
+    .withMessage(
+      'Meal type must be breakfast, lunch, dinner, or snack'
+    ),
+
   this.handleValidationErrors
 ];
+
 
 // Meal Plan validation rules
 exports.validateMealPlan = [

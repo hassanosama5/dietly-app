@@ -25,21 +25,30 @@ import DashboardLayout from "./components/layouts/DashboardLayout";
 
 // 🔥 Correct import for your admin dashboard page
 import DashboardAdmin from "./pages/DashboardAdmin";
+import ManageUsers from "./pages/ManageUsers";
+import ManageMeals from "./pages/ManageMeals";   // ✅ ADDED
 
 // Route for logged-in users
 const ProtectedRoute = ({ children, allowIncompleteProfile = false }) => {
-  const { isAuthenticated, loading, isProfileComplete } = useAuth();
+  const { isAuthenticated, loading, isProfileComplete, user } = useAuth();
 
   if (loading || isProfileComplete === null) return <LoadingSpinner />;
 
   if (!isAuthenticated) return <Navigate to="/" replace />;
 
+  // 🔥 Admins bypass profile completeness requirement
+  if (user?.role === "admin") {
+    return children;
+  }
+
+  // Normal user must complete profile
   if (!allowIncompleteProfile && !isProfileComplete) {
     return <Navigate to="/profile-setup" replace />;
   }
 
   return children;
 };
+
 
 // Route for guests
 const GuestRoute = ({ children }) => {
@@ -136,6 +145,26 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardAdmin />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* 🔥 ADMIN MANAGE USERS ROUTE */}
+            <Route
+              path="/admin/users"
+              element={
+                <ProtectedRoute>
+                  <ManageUsers />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* 🔥 ADMIN MANAGE MEALS ROUTE — ADDED */}
+            <Route
+              path="/admin/meals"
+              element={
+                <ProtectedRoute>
+                  <ManageMeals />
                 </ProtectedRoute>
               }
             />

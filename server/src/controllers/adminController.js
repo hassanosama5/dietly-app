@@ -13,7 +13,7 @@ const { validateRequired, validateEmail, validatePassword } = require("../utils/
 // @access  Private/Admin
 exports.getUsers = async (req, res) => {
   try {
-    const { role, page = 1, limit = 20, search } = req.query;
+    const { role, page = 1, limit = 500, search } = req.query;
 
     const query = {};
     if (role) {

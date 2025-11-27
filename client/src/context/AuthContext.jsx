@@ -106,32 +106,48 @@ export const AuthProvider = ({ children }) => {
 
   // Login
   const login = async (credentials) => {
-    try {
-      setLoading(true);
-      setError(null);
+  try {
+    setLoading(true);
+    setError(null);
 
-      const res = await authService.login(credentials);
-      if (res.data.success) {
-        const { token } = res.data.data;
-        localStorage.setItem("token", token);
+    // 1. Login → get token
+    const res = await authService.login(credentials);
 
-        // Fetch full user profile
-        const userRes = await authService.getMe();
-        if (userRes.data.success) {
-          setUser(userRes.data.data);
-          checkProfileCompletion(userRes.data.data);
-        }
+    if (res.data.success) {
+      const { token } = res.data.data;
+      localStorage.setItem("token", token);
+
+      // 2. Fetch logged-in user profile
+      const userRes = await authService.getMe();
+      if (userRes.data.success) {
+        const fullUser = userRes.data.data;
+
+        console.log("USER LOADED:", fullUser);
+
+
+        setUser(fullUser);
+        checkProfileCompletion(fullUser);
 
         setLoading(false);
-        return { success: true };
+
+        // 🔥 Must return role so Login.jsx can redirect
+        return { success: true, role: fullUser.role };
       }
-    } catch (err) {
-      setLoading(false);
-      const msg = err.response?.data?.message || err.message;
-      setError(msg);
-      return { success: false, error: msg };
     }
-  };
+
+    // ❌ Fall back if something unexpected happens
+    setLoading(false);
+    return { success: false, error: "Unable to load user profile" };
+
+  } catch (err) {
+    setLoading(false);
+    const msg = err.response?.data?.message || err.message;
+    setError(msg);
+    return { success: false, error: msg };
+  }
+};
+
+
 
   // Update profile
   const updateProfile = async (profileData) => {

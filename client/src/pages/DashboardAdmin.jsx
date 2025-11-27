@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 
 // ✅ FIXED IMPORT PATHS
 import { Button } from "../components/ui/button";
@@ -16,9 +17,9 @@ import {
 } from "lucide-react";
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [currentView, setCurrentView] = useState("dashboard");
   const dropdownRef = useRef(null);
 
   // Mock admin user - replace with actual auth
@@ -49,12 +50,12 @@ const AdminDashboard = () => {
   };
 
   const handleProfileClick = () => {
-    setCurrentView("profile");
+    navigate("/profile");
     setIsDropdownOpen(false);
   };
 
   const handleSettingsClick = () => {
-    setCurrentView("settings");
+    navigate("/settings");
     setIsDropdownOpen(false);
   };
 
@@ -181,7 +182,7 @@ const AdminDashboard = () => {
             <div className="grid md:grid-cols-2 gap-6 mt-12">
               {/* Manage Users Card */}
               <Card
-                onClick={() => setCurrentView("users")}
+                onClick={() => navigate("/admin/users")}
                 className="bg-[#246608]/10 border-[#246608]/20 rounded-3xl shadow-xl hover:shadow-2xl hover:border-[#246608]/40 transition-all duration-300 cursor-pointer group"
               >
                 <CardContent className="p-8">
@@ -204,7 +205,7 @@ const AdminDashboard = () => {
 
               {/* Manage Meals Card */}
               <Card
-                onClick={() => setCurrentView("meals")}
+                onClick={() => navigate("/admin/meals")}
                 className="bg-[#246608]/10 border-[#246608]/20 rounded-3xl shadow-xl hover:shadow-2xl hover:border-[#246608]/40 transition-all duration-300 cursor-pointer group"
               >
                 <CardContent className="p-8">
@@ -266,7 +267,7 @@ const AdminDashboard = () => {
           </p>
           <div className="flex items-center justify-center gap-4">
             <Button
-              onClick={() => setCurrentView("users")}
+              onClick={() => navigate("/admin/users")}
               size="lg"
               className="px-8 py-6 bg-gradient-to-r from-[#2F7A0A] to-[#246608] hover:shadow-2xl hover:shadow-[#246608]/30 transition-all duration-300 text-base font-semibold"
             >
@@ -274,7 +275,7 @@ const AdminDashboard = () => {
               MANAGE USERS
             </Button>
             <Button
-              onClick={() => setCurrentView("meals")}
+              onClick={() => navigate("/admin/meals")}
               size="lg"
               className="px-8 py-6 bg-gradient-to-r from-[#2F7A0A] to-[#246608] hover:shadow-2xl hover:shadow-[#246608]/30 transition-all duration-300 text-base font-semibold"
             >
