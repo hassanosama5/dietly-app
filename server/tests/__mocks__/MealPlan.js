@@ -1,19 +1,38 @@
-// Mock MealPlan model with chainable methods
-const createMockQuery = (result) => ({
-  sort: jest.fn().mockReturnThis(),
-  skip: jest.fn().mockReturnThis(),
-  limit: jest.fn().mockReturnThis(),
-  populate: jest.fn().mockReturnThis(),
-  select: jest.fn().mockReturnThis(),
-  exec: jest.fn().mockResolvedValue(result),
-  lean: jest.fn().mockResolvedValue(result),
-});
+// tests/__mocks__/MealPlan.js
+// Unified MealPlan mock that supports both simple and advanced tests
 
-module.exports = {
-  find: jest.fn(() => createMockQuery([])),
-  findOne: jest.fn(() => createMockQuery(null)),
-  findById: jest.fn(() => createMockQuery(null)),
-  countDocuments: jest.fn().mockResolvedValue(0),
-  create: jest.fn(),
-  findOneAndUpdate: jest.fn(),
+const mongoose = require("mongoose");
+const { createMockQuery } = require("./mongooseQuery");
+
+// Base mock data
+const mockMealPlan = {
+  _id: new mongoose.Types.ObjectId(),
+  user: new mongoose.Types.ObjectId(),
+  name: "Test Meal Plan",
+  duration: 7,
+  targetCalories: 2000,
+  status: "active",
+  meals: [],
+  createdAt: new Date(),
+  updatedAt: new Date(),
 };
+
+const mockMealPlans = [mockMealPlan];
+
+// Mock the MealPlan model (default export) with chainable query methods
+const MealPlan = {
+  // Static methods that return chainable queries
+  find: jest.fn(() => createMockQuery(mockMealPlans)),
+  findOne: jest.fn(() => createMockQuery(mockMealPlan)),
+  findById: jest.fn(() => createMockQuery(mockMealPlan)),
+  findByIdAndUpdate: jest.fn(() => createMockQuery(mockMealPlan)),
+  findByIdAndDelete: jest.fn(() => createMockQuery(null)),
+
+  // Direct / promise-returning methods
+  countDocuments: jest.fn().mockResolvedValue(1),
+  create: jest.fn().mockResolvedValue(mockMealPlan),
+};
+
+// Support both `require(".../MealPlan")` and `{ MealPlan }` import styles
+module.exports = MealPlan;
+module.exports.MealPlan = MealPlan;

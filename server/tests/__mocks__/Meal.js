@@ -1,9 +1,26 @@
-const { createMockQuery } = require("./queryBuilder");
+// tests/__mocks__/Meal.js
+// Unified Meal mock supporting both simple lookups and calorie summary queries
 
-// Mock Meal model with proper chainable methods
+const { createMockQuery } = require("./mongooseQuery");
+
 module.exports = {
-  find: jest.fn(() =>
-    createMockQuery([
+  find: jest.fn().mockImplementation((query) => {
+    // For recalcDayCalorieSummary: query by list of meal ids
+    if (query && query._id && query._id.$in) {
+      const results = query._id.$in.map((id) => ({
+        _id: id,
+        nutrition: {
+          calories: 400,
+          protein: 30,
+          carbohydrates: 50,
+          fats: 15,
+        },
+      }));
+      return createMockQuery(results);
+    }
+
+    // Default: return a single generic meal
+    return createMockQuery([
       {
         _id: "meal1",
         nutrition: {
@@ -13,10 +30,10 @@ module.exports = {
           fats: 15,
         },
       },
-    ])
-  ),
+    ]);
+  }),
 
-  findById: jest.fn(() =>
+  findById: jest.fn().mockReturnValue(
     createMockQuery({
       _id: "meal-id",
       name: "Test Meal",
