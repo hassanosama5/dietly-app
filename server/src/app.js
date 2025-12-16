@@ -20,7 +20,24 @@ const chatbotRoutes = require("./routes/chatbotRoutes"); // Add this line
 
 // Security middleware (FIRST)
 app.use(securityHeaders);
-app.use(cors()); // Use cors directly instead of corsOptions if you don't have custom config
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'https://dietly-frontend.netlify.app' // We'll update this later
+    ];
+    
+    if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 app.use(sanitizeData);
 
 // Rate limiting (AFTER security, BEFORE routes)

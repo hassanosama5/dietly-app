@@ -1,5 +1,7 @@
 require("dotenv").config();
 const mongoose = require("mongoose");
+
+// Import your Express app from src/app.js
 const app = require("./src/app");
 
 const PORT = process.env.PORT || 5000;
@@ -18,9 +20,6 @@ if (DB && DB.includes("<PASSWORD>")) {
     process.exit(1);
   }
   DB = DB.replace("<PASSWORD>", encodeURIComponent(process.env.DATABASE_PASSWORD));
-} else if (DB) {
-  // If no <PASSWORD> placeholder, assume password is already in the string
-  console.log("ℹ️  Using full connection string from DATABASE");
 }
 
 // Ensure a database name is present in the connection string
@@ -30,13 +29,9 @@ if (!hasExplicitDb) {
   DB = DB.replace("mongodb.net/?", `mongodb.net/${defaultDbName}?`);
 }
 
-// Debug: Show connection string (without password for security)
-const dbForLog = DB.replace(/:[^:@]+@/, ":****@");
-console.log("🔗 Connecting to:", dbForLog);
-
 // Connection options
 const connectionOptions = {
-  serverSelectionTimeoutMS: 10000, // 10 seconds timeout
+  serverSelectionTimeoutMS: 10000,
   socketTimeoutMS: 45000,
 };
 
@@ -47,15 +42,6 @@ mongoose
     app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
   })
   .catch((err) => {
-    console.error("❌ MongoDB connection error:");
-    console.error("Error code:", err.code);
-    console.error("Error message:", err.message);
-    console.error("\n💡 Troubleshooting tips:");
-    console.error("1. Check your DATABASE connection string in .env file");
-    console.error("2. Verify MongoDB Atlas IP whitelist includes your IP (0.0.0.0/0 for all)");
-    console.error("3. Check your internet connection");
-    console.error("4. Verify DATABASE_PASSWORD in .env is correct");
-    console.error("5. Make sure MongoDB Atlas cluster is running");
-    console.error("6. Try using the exact connection string from MongoDB Compass");
+    console.error("❌ MongoDB connection error:", err.message);
     process.exit(1);
   });
