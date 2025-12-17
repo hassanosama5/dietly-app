@@ -1,16 +1,16 @@
 // client/src/components/layout/DashboardLayout.jsx
 import React, { useState, useEffect, useRef } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { Button } from "../ui/button";
-import { User, Settings, LogOut, MessageCircle } from "lucide-react";
+import { User, Settings, LogOut, MessageCircle, Menu, X } from "lucide-react";
 
 const DashboardLayout = ({ children }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   // Handle scroll effect
@@ -30,20 +30,30 @@ const DashboardLayout = ({ children }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const closeMenus = () => {
+    setIsDropdownOpen(false);
+    setIsMobileMenuOpen(false);
+  };
+
+  const handleNavigate = (path) => {
+    navigate(path);
+    closeMenus();
+  };
+
   const handleLogout = () => {
     logout();
     navigate("/dashboard");
-    setIsDropdownOpen(false);
+    closeMenus();
   };
 
   const handleProfileClick = () => {
     navigate("/profile");
-    setIsDropdownOpen(false);
+    closeMenus();
   };
 
   const handleSettingsClick = () => {
     navigate("/settings");
-    setIsDropdownOpen(false);
+    closeMenus();
   };
 
   return (
@@ -56,22 +66,22 @@ const DashboardLayout = ({ children }) => {
             : "bg-transparent"
         }`}
       >
-        <div className="max-w-[1200px] mx-auto px-8">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
-            <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-4">
               <img
                 src={scrolled ? "/logo-white.png" : "/logo-green.png"}
                 alt="Logo"
-                className="w-24 h-24 md:w-32 md:h-32 cursor-pointer"
-                onClick={() => navigate("/dashboard")}
+                className="w-20 h-20 md:w-24 md:h-24 cursor-pointer"
+                onClick={() => handleNavigate("/dashboard")}
               />
             </div>
 
-            {/* Nav Links */}
-            <div className="hidden md:flex items-center space-x-6">
+            {/* Desktop Nav Links */}
+            <div className="hidden md:flex items-center space-x-4">
               <Button
-                onClick={() => navigate("/meals")}
+                onClick={() => handleNavigate("/meals")}
                 variant="ghost"
                 size="sm"
                 className={`
@@ -88,7 +98,7 @@ const DashboardLayout = ({ children }) => {
               </Button>
 
               <Button
-                onClick={() => navigate("/progress")}
+                onClick={() => handleNavigate("/progress")}
                 variant="ghost"
                 size="sm"
                 className={`
@@ -105,7 +115,7 @@ const DashboardLayout = ({ children }) => {
               </Button>
 
               <Button
-                onClick={() => navigate("/meal-plans")}
+                onClick={() => handleNavigate("/meal-plans")}
                 variant="ghost"
                 size="sm"
                 className={`
@@ -120,24 +130,25 @@ const DashboardLayout = ({ children }) => {
               >
                 My Plans
               </Button>
-              {/* Add this with your other nav buttons */}
+
               <Button
-                onClick={() => navigate("/chatbot")}
+                onClick={() => handleNavigate("/chatbot")}
                 variant="ghost"
                 size="sm"
                 className={`
-    text-base font-medium transition-colors duration-300
-    ${
-      scrolled
-        ? "text-white hover:text-yellow-200 hover:bg-white/5"
-        : "text-black hover:text-gray-600 hover:bg-gray-100"
-    }
-    font-poppins flex items-center space-x-1
-  `}
+                  text-base font-medium transition-colors duration-300
+                  ${
+                    scrolled
+                      ? "text-white hover:text-yellow-200 hover:bg-white/5"
+                      : "text-black hover:text-gray-600 hover:bg-gray-100"
+                  }
+                  font-poppins flex items-center space-x-1
+                `}
               >
                 <MessageCircle className="w-4 h-4" />
                 <span>AI Coach</span>
               </Button>
+
               {/* Profile Dropdown */}
               <div className="relative" ref={dropdownRef}>
                 <Button
@@ -195,8 +206,119 @@ const DashboardLayout = ({ children }) => {
                 )}
               </div>
             </div>
+
+            {/* Mobile Menu Button */}
+            <div className="flex items-center md:hidden">
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`rounded-full border border-white/20 ${
+                  scrolled
+                    ? "text-white hover:bg-white/10"
+                    : "text-black hover:bg-gray-100"
+                }`}
+                onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+                aria-label="Toggle navigation menu"
+              >
+                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </Button>
+            </div>
           </div>
         </div>
+
+        {/* Mobile Nav Panel */}
+        {isMobileMenuOpen && (
+          <div
+            className={`md:hidden border-t ${
+              scrolled
+                ? "bg-[#246608]/95 border-white/10"
+                : "bg-white/95 border-gray-200 shadow-lg"
+            }`}
+          >
+            <div className="max-w-[1200px] mx-auto px-4 pt-3 pb-4 space-y-2">
+              <Button
+                onClick={() => handleNavigate("/meals")}
+                variant="ghost"
+                className={`w-full justify-start text-base font-medium font-poppins ${
+                  scrolled
+                    ? "text-white hover:text-yellow-200 hover:bg-white/10"
+                    : "text-gray-900 hover:text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                Browse Meals
+              </Button>
+              <Button
+                onClick={() => handleNavigate("/progress")}
+                variant="ghost"
+                className={`w-full justify-start text-base font-medium font-poppins ${
+                  scrolled
+                    ? "text-white hover:text-yellow-200 hover:bg-white/10"
+                    : "text-gray-900 hover:text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                Progress
+              </Button>
+              <Button
+                onClick={() => handleNavigate("/meal-plans")}
+                variant="ghost"
+                className={`w-full justify-start text-base font-medium font-poppins ${
+                  scrolled
+                    ? "text-white hover:text-yellow-200 hover:bg-white/10"
+                    : "text-gray-900 hover:text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                My Plans
+              </Button>
+              <Button
+                onClick={() => handleNavigate("/chatbot")}
+                variant="ghost"
+                className={`w-full justify-start text-base font-medium font-poppins ${
+                  scrolled
+                    ? "text-white hover:text-yellow-200 hover:bg-white/10"
+                    : "text-gray-900 hover:text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                AI Coach
+              </Button>
+
+              <div className="pt-2 border-t border-white/10 mt-2 space-y-1">
+                <Button
+                  onClick={handleProfileClick}
+                  variant="ghost"
+                  className={`w-full justify-start text-sm font-medium font-poppins ${
+                    scrolled
+                      ? "text-white hover:text-yellow-200 hover:bg-white/10"
+                      : "text-gray-900 hover:text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  <User className="w-4 h-4 mr-2" />
+                  Profile
+                </Button>
+                <Button
+                  onClick={handleSettingsClick}
+                  variant="ghost"
+                  className={`w-full justify-start text-sm font-medium font-poppins ${
+                    scrolled
+                      ? "text-white hover:text-yellow-200 hover:bg-white/10"
+                      : "text-gray-900 hover:text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Settings
+                </Button>
+                <Button
+                  onClick={handleLogout}
+                  variant="ghost"
+                  className="w-full justify-start text-sm font-semibold font-poppins text-red-600 hover:bg-red-50"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Log Out
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Main Content with proper spacing for fixed navbar */}

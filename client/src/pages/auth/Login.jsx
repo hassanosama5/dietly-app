@@ -37,7 +37,6 @@ const Login = () => {
     setIsSubmitting(true);
 
     const result = await login(formData);
-    console.log("LOGIN RESULT:", result); // 🔥 DEBUG HERE
 
     if (result.success) {
       if (result.role === "admin") {

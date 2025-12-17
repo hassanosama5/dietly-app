@@ -90,23 +90,25 @@ const Profile = () => {
 
         <Card className="mb-6 shadow-lg border border-gray-200">
           <CardContent className="p-8">
-            <div className="flex items-center justify-between mb-8 pb-6 border-b border-gray-200">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8 pb-6 border-b border-gray-200">
               <div className="flex items-center space-x-6">
                 <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#2F7A0A] to-[#246608] flex items-center justify-center text-white text-3xl font-bold shadow-lg">
                   {user?.name?.charAt(0).toUpperCase() || "U"}
                 </div>
-                <div>
+                <div className="min-w-0">
                   <h2 className="text-2xl font-bold text-gray-900">
                     {user?.name || "User"}
                   </h2>
-                  <p className="text-gray-600">{user?.email || "No email"}</p>
+                  <p className="text-gray-600 text-sm break-all">
+                    {user?.email || "No email"}
+                  </p>
                   <span className="inline-block mt-2 px-3 py-1 bg-[#246608]/10 text-[#246608] text-sm font-semibold rounded-full">
                     Active Member
                   </span>
                 </div>
               </div>
 
-              <div className="flex space-x-2">
+              <div className="flex flex-wrap gap-2 md:space-x-2 md:gap-0 md:justify-end">
                 {!isEditing ? (
                   <Button
                     onClick={() => setIsEditing(true)}
@@ -177,7 +179,7 @@ const Profile = () => {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#246608] focus:border-transparent"
                     />
                   ) : (
-                    <p className="text-gray-900 font-medium">
+                    <p className="text-gray-900 font-medium break-all">
                       {user?.email || "Not provided"}
                     </p>
                   )}

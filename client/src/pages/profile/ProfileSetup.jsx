@@ -251,8 +251,6 @@ const ProfileSetup = () => {
         activityLevel: selectedActivityLevel,
       };
       
-      console.log('Sending profile data to backend:', profileData);
-      
       // For "maintain" goal, mark setup as complete after step 4
       if (selectedGoal === "maintain") {
         profileData.profileSetupComplete = true;
@@ -327,8 +325,6 @@ const ProfileSetup = () => {
         allergies,
         profileSetupComplete: true,
       };
-      
-      console.log('Sending final profile data to backend:', payload);
       
       try {
         if (user) {
