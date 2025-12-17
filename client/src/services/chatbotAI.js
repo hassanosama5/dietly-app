@@ -6,22 +6,11 @@ export async function generateChatResponse(
 ) {
   try {
     const response = await api.post("/chatbot/message", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`, // Include auth token
-      },
-      body: JSON.stringify({
-        message: userMessage,
-        conversationHistory: conversationHistory,
-      }),
+      message: userMessage,
+      conversationHistory: conversationHistory,
     });
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = response.data;
 
     if (data.success) {
       return data.response;
