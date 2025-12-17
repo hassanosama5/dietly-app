@@ -20,6 +20,8 @@ const chatbotRoutes = require("./routes/chatbotRoutes"); // Add this line
 
 // Security middleware (FIRST)
 app.use(securityHeaders);
+
+
 app.use(cors({
   origin: [
     'http://localhost:5000', // For local development
@@ -27,6 +29,8 @@ app.use(cors({
   ],
   credentials: true
 }));
+
+
 app.use(sanitizeData);
 
 // Rate limiting (AFTER security, BEFORE routes)
