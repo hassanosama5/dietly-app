@@ -30,6 +30,7 @@ const Chatbot = () => {
   ]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
 
   // Personalized greeting based on user data
   // Personalized greeting based on user data
@@ -67,13 +68,13 @@ const Chatbot = () => {
     return greetings[Math.floor(Math.random() * greetings.length)];
   }
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
   useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+    if (!hasMounted) {
+      setHasMounted(true);
+      return;
+    }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, hasMounted]);
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
@@ -183,7 +184,7 @@ const Chatbot = () => {
 
     return (
       <div className="bg-gradient-to-r from-[#246608]/10 to-[#2F7A0A]/10 rounded-lg p-4 mb-6 border border-[#246608]/20">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#246608] rounded-full flex items-center justify-center">
               <User className="w-5 h-5 text-white" />
@@ -196,7 +197,7 @@ const Chatbot = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 text-sm">
+          <div className="flex flex-wrap gap-3 text-xs sm:text-sm text-gray-700">
             {user.currentWeight && (
               <div className="flex items-center gap-1">
                 <Scale className="w-4 h-4 text-[#246608]" />

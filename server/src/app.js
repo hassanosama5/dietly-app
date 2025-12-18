@@ -21,16 +21,17 @@ const chatbotRoutes = require("./routes/chatbotRoutes"); // Add this line
 // Security middleware (FIRST)
 app.use(securityHeaders);
 
-
-app.use(cors({
-  origin: [
-    'http://localhost:5000', // For local development
-    'https://dietlyapp.vercel.app',
-    'https://dietlyapp-*.vercel.app' 
-  ],
-  credentials: true
-}));
-
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5000", // For local development
+      "http://localhost:3000", // For local development
+      "https://dietlyapp.vercel.app", // ✅ Add your LIVE frontend URL here
+      "https://dietlyapp-*.vercel.app",
+    ],
+    credentials: true,
+  })
+);
 
 app.use(sanitizeData);
 
@@ -67,4 +68,3 @@ app.use(notFound);
 app.use(errorHandler);
 
 module.exports = app;
-

@@ -4,9 +4,11 @@ import {
   Routes,
   Route,
   Navigate,
+  useLocation,
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { MealProvider } from "./context/MealContext";
+import { Menu, X } from "lucide-react";
 
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
@@ -102,15 +104,32 @@ const PublicRoute = ({ children }) => {
   return children;
 };
 
-// Guest Layout component with navbar - KEEP YOUR EXISTING
+// Scroll to top on route change
+const ScrollToTop = () => {
+  const location = useLocation();
+
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+
+  return null;
+};
+
+// Guest Layout component with navbar - now mobile-friendly
 const GuestLayout = ({ children }) => {
   const [scrolled, setScrolled] = React.useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
   React.useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const handleNavigate = (path) => {
+    window.location.href = path;
+    setIsMobileMenuOpen(false);
+  };
 
   return (
     <div className="min-h-screen bg-white text-black">
@@ -122,24 +141,24 @@ const GuestLayout = ({ children }) => {
             : "bg-transparent"
         }`}
       >
-        <div className="max-w-[1200px] mx-auto px-8">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
             <div
-              className="flex items-center space-x-6 cursor-pointer"
-              onClick={() => (window.location.href = "/dashboard")}
+              className="flex items-center space-x-4 cursor-pointer"
+              onClick={() => handleNavigate("/dashboard")}
             >
               <img
                 src={scrolled ? "/logo-white.png" : "/logo-green.png"}
                 alt="Logo"
-                className="w-24 h-24 md:w-32 md:h-32"
+                className="w-20 h-20 md:w-24 md:h-24"
               />
             </div>
 
-            {/* Nav Links */}
-            <div className="hidden md:flex items-center space-x-6">
+            {/* Desktop Nav Links */}
+            <div className="hidden md:flex items-center space-x-4">
               <button
-                onClick={() => (window.location.href = "/meals")}
+                onClick={() => handleNavigate("/meals")}
                 className={`
                   text-base font-medium transition-colors duration-300
                   ${
@@ -153,7 +172,7 @@ const GuestLayout = ({ children }) => {
                 Browse Meals
               </button>
               <button
-                onClick={() => (window.location.href = "/login")}
+                onClick={() => handleNavigate("/login")}
                 className={`
                   text-base font-medium transition-colors duration-300
                   ${
@@ -167,7 +186,7 @@ const GuestLayout = ({ children }) => {
                 Login
               </button>
               <button
-                onClick={() => (window.location.href = "/register")}
+                onClick={() => handleNavigate("/register")}
                 className={`
                   text-base font-medium transition-colors duration-300
                   ${
@@ -181,8 +200,71 @@ const GuestLayout = ({ children }) => {
                 Register
               </button>
             </div>
+
+            {/* Mobile Menu Button */}
+            <div className="flex items-center md:hidden">
+              <button
+                onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+                className={`inline-flex items-center justify-center rounded-full border border-white/20 p-2 ${
+                  scrolled
+                    ? "text-white hover:bg-white/10"
+                    : "text-black hover:bg-gray-100"
+                }`}
+                aria-label="Toggle navigation menu"
+              >
+                {isMobileMenuOpen ? (
+                  <X className="w-5 h-5" />
+                ) : (
+                  <Menu className="w-5 h-5" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Mobile Nav Panel */}
+        {isMobileMenuOpen && (
+          <div
+            className={`md:hidden border-t ${
+              scrolled
+                ? "bg-[#246608]/95 border-white/10"
+                : "bg-white/95 border-gray-200 shadow-lg"
+            }`}
+          >
+            <div className="max-w-[1200px] mx-auto px-4 pt-3 pb-4 space-y-2">
+              <button
+                onClick={() => handleNavigate("/meals")}
+                className={`w-full text-left text-base font-medium font-poppins rounded-lg px-4 py-2.5 transition-colors ${
+                  scrolled
+                    ? "text-white hover:text-yellow-200 hover:bg-white/10"
+                    : "text-gray-900 hover:text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                Browse Meals
+              </button>
+              <button
+                onClick={() => handleNavigate("/login")}
+                className={`w-full text-left text-base font-medium font-poppins rounded-lg px-4 py-2.5 transition-colors ${
+                  scrolled
+                    ? "text-white hover:text-yellow-200 hover:bg-white/10"
+                    : "text-gray-900 hover:text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                Login
+              </button>
+              <button
+                onClick={() => handleNavigate("/register")}
+                className={`w-full text-left text-base font-medium font-poppins rounded-lg px-4 py-2.5 transition-colors ${
+                  scrolled
+                    ? "text-white hover:text-yellow-200 hover:bg-white/10"
+                    : "text-gray-900 hover:text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                Register
+              </button>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Main Content */}
@@ -230,6 +312,7 @@ function App() {
     <AuthProvider>
       <MealProvider>
         <Router>
+          <ScrollToTop />
           <Routes>
             {/* Auth pages */}
             <Route

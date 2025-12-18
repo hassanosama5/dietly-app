@@ -28,6 +28,8 @@ import {
   BarChart3,
   Lightbulb,
   MessageCircle,
+  Menu,
+  X,
 } from "lucide-react";
 
 const Dashboard = () => {
@@ -35,6 +37,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -55,24 +58,28 @@ const Dashboard = () => {
 
   // Debug user data to see what's available
   useEffect(() => {
-    console.log("User data in Dashboard:", user);
-    console.log("User healthGoal:", user?.healthGoal);
+    // User data is available via AuthContext if needed
   }, [user]);
+
+  const closeMenus = () => {
+    setIsDropdownOpen(false);
+    setIsMobileMenuOpen(false);
+  };
 
   const handleLogout = () => {
     logout();
     navigate("/dashboard");
-    setIsDropdownOpen(false);
+    closeMenus();
   };
 
   const handleProfileClick = () => {
     navigate("/profile");
-    setIsDropdownOpen(false);
+    closeMenus();
   };
 
   const handleSettingsClick = () => {
     navigate("/settings");
-    setIsDropdownOpen(false);
+    closeMenus();
   };
 
   // Scroll to top function for navigation
@@ -84,34 +91,37 @@ const Dashboard = () => {
   const handleMealsNavigation = () => {
     navigate("/meals");
     scrollToTop();
+    closeMenus();
   };
 
   const handleProgressNavigation = () => {
     navigate("/progress");
     scrollToTop();
+    closeMenus();
   };
 
   const handleMealPlansNavigation = () => {
     navigate("/meal-plans");
     scrollToTop();
+    closeMenus();
   };
 
   const handleExploreMealsNavigation = () => {
     navigate("/meals");
     scrollToTop();
+    closeMenus();
   };
 
   const handleGeneratePlanNavigation = () => {
     navigate("/meal-plans/generate");
     scrollToTop();
+    closeMenus();
   };
 
   // Get goal-specific content - FIXED: using healthGoal instead of goal
   const getGoalContent = () => {
     // Use the actual user healthGoal, not goal
     const goal = user?.healthGoal?.toLowerCase() || "maintain";
-
-    console.log("Detected healthGoal:", goal); // Debug log
 
     if (goal === "lose") {
       return {
@@ -194,19 +204,19 @@ const Dashboard = () => {
             : "bg-transparent"
         }`}
       >
-        <div className="max-w-[1200px] mx-auto px-8">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
-            <Link to="/dashboard" className="flex items-center space-x-6">
+            <Link to="/dashboard" className="flex items-center space-x-4">
               <img
                 src={scrolled ? "/logo-white.png" : "/logo-green.png"}
                 alt="Logo"
-                className="w-24 h-24 md:w-32 md:h-32 cursor-pointer"
+                className="w-20 h-20 md:w-24 md:h-24 cursor-pointer"
               />
             </Link>
 
-            {/* Nav Links */}
-            <div className="hidden md:flex items-center space-x-6">
+            {/* Desktop Nav Links */}
+            <div className="hidden md:flex items-center space-x-4">
               <Button
                 onClick={handleMealsNavigation}
                 variant="ghost"
@@ -257,18 +267,22 @@ const Dashboard = () => {
                 My Plans
               </Button>
               <Button
-                onClick={() => navigate("/chatbot")}
+                onClick={() => {
+                  navigate("/chatbot");
+                  scrollToTop();
+                  closeMenus();
+                }}
                 variant="ghost"
                 size="sm"
                 className={`
-    text-base font-medium transition-colors duration-300
-    ${
-      scrolled
-        ? "text-white hover:text-yellow-200 hover:bg-white/5"
-        : "text-black hover:text-gray-600 hover:bg-gray-100"
-    }
-    font-poppins
-  `}
+                  text-base font-medium transition-colors duration-300
+                  ${
+                    scrolled
+                      ? "text-white hover:text-yellow-200 hover:bg-white/5"
+                      : "text-black hover:text-gray-600 hover:bg-gray-100"
+                  }
+                  font-poppins
+                `}
               >
                 <MessageCircle className="w-4 h-4 mr-1" />
                 AI Coach
@@ -330,8 +344,123 @@ const Dashboard = () => {
                 )}
               </div>
             </div>
+
+            {/* Mobile Menu Button */}
+            <div className="flex items-center md:hidden">
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`rounded-full border border-white/20 ${
+                  scrolled
+                    ? "text-white hover:bg-white/10"
+                    : "text-black hover:bg-gray-100"
+                }`}
+                onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+                aria-label="Toggle navigation menu"
+              >
+                {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </Button>
+            </div>
           </div>
         </div>
+
+        {/* Mobile Nav Panel */}
+        {isMobileMenuOpen && (
+          <div
+            className={`md:hidden border-t ${
+              scrolled
+                ? "bg-[#246608]/95 border-white/10"
+                : "bg-white/95 border-gray-200 shadow-lg"
+            }`}
+          >
+            <div className="max-w-[1200px] mx-auto px-4 pt-3 pb-4 space-y-2">
+              <Button
+                onClick={handleMealsNavigation}
+                variant="ghost"
+                className={`w-full justify-start text-base font-medium font-poppins ${
+                  scrolled
+                    ? "text-white hover:text-yellow-200 hover:bg-white/10"
+                    : "text-gray-900 hover:text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                Browse Meals
+              </Button>
+              <Button
+                onClick={handleProgressNavigation}
+                variant="ghost"
+                className={`w-full justify-start text-base font-medium font-poppins ${
+                  scrolled
+                    ? "text-white hover:text-yellow-200 hover:bg-white/10"
+                    : "text-gray-900 hover:text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                Progress
+              </Button>
+              <Button
+                onClick={handleMealPlansNavigation}
+                variant="ghost"
+                className={`w-full justify-start text-base font-medium font-poppins ${
+                  scrolled
+                    ? "text-white hover:text-yellow-200 hover:bg-white/10"
+                    : "text-gray-900 hover:text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                My Plans
+              </Button>
+              <Button
+                onClick={() => {
+                  navigate("/chatbot");
+                  scrollToTop();
+                  closeMenus();
+                }}
+                variant="ghost"
+                className={`w-full justify-start text-base font-medium font-poppins ${
+                  scrolled
+                    ? "text-white hover:text-yellow-200 hover:bg-white/10"
+                    : "text-gray-900 hover:text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                AI Coach
+              </Button>
+
+              <div className="pt-2 border-t border-white/10 mt-2 space-y-1">
+                <Button
+                  onClick={handleProfileClick}
+                  variant="ghost"
+                  className={`w-full justify-start text-sm font-medium font-poppins ${
+                    scrolled
+                      ? "text-white hover:text-yellow-200 hover:bg-white/10"
+                      : "text-gray-900 hover:text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  <User className="w-4 h-4 mr-2" />
+                  Profile
+                </Button>
+                <Button
+                  onClick={handleSettingsClick}
+                  variant="ghost"
+                  className={`w-full justify-start text-sm font-medium font-poppins ${
+                    scrolled
+                      ? "text-white hover:text-yellow-200 hover:bg-white/10"
+                      : "text-gray-900 hover:text-gray-700 hover:bg-gray-100"
+                  }`}
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Settings
+                </Button>
+                <Button
+                  onClick={handleLogout}
+                  variant="ghost"
+                  className="w-full justify-start text-sm font-semibold font-poppins text-red-600 hover:bg-red-50"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Log Out
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* ==================== PERSONALIZED HERO SECTION ==================== */}

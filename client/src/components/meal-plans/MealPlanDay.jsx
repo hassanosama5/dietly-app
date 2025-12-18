@@ -1,6 +1,5 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import MealCard from "../meals/MealCard";
 
 const MealPlanDay = ({
   day,
@@ -82,10 +81,12 @@ const MealPlanDay = ({
 
     const isConsumed = mealEntry.consumed || false;
     const servings = mealEntry.servings || 1;
+    const meal = mealEntry.meal;
 
     return (
       <div
-        className={`relative rounded-lg overflow-hidden transition-all ${
+        onClick={() => handleMealClick(meal)}
+        className={`relative rounded-lg border border-gray-200 bg-white shadow-sm hover:shadow-md transition-all cursor-pointer ${
           allowConsume ? "" : "opacity-60"
         }`}
       >
@@ -96,23 +97,63 @@ const MealPlanDay = ({
           </div>
         )}
 
-        {/* Meal Card */}
-        <div
-          className={isConsumed || !allowConsume ? "pointer-events-none" : ""}
-        >
-          <MealCard meal={mealEntry.meal} onClick={handleMealClick} />
+        {/* Compact horizontal meal layout */}
+        <div className="flex flex-col sm:flex-row">
+          <div className="w-full sm:w-32 h-32 bg-gray-100 overflow-hidden flex-shrink-0">
+            {meal.imageUrl ? (
+              <img
+                src={meal.imageUrl}
+                alt={meal.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-3xl">
+                🍽️
+              </div>
+            )}
+          </div>
+
+          <div className="flex-1 p-3 flex flex-col justify-between">
+            <div>
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <h4 className="text-sm font-semibold text-gray-900 line-clamp-2">
+                  {meal.name}
+                </h4>
+                {meal.mealType && (
+                  <span className="px-2 py-0.5 text-[11px] font-medium rounded-full bg-gray-100 text-gray-700 whitespace-nowrap">
+                    {meal.mealType.charAt(0).toUpperCase() +
+                      meal.mealType.slice(1)}
+                  </span>
+                )}
+              </div>
+              {meal.description && (
+                <p className="text-xs text-gray-600 line-clamp-2">
+                  {meal.description}
+                </p>
+              )}
+            </div>
+
+            <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
+              {meal.nutrition && (
+                <span>{meal.nutrition.calories} kcal</span>
+              )}
+              <span>
+                <span className="font-medium">{servings}</span> serving
+                {servings !== 1 ? "s" : ""}
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Servings and Consume Button */}
-        <div className="p-3 flex items-center justify-between">
-          <div className="text-sm text-gray-600">
-            <span className="font-medium">{servings}</span> serving
-            {servings !== 1 ? "s" : ""}
-          </div>
+        {/* Consume Button */}
+        <div className="px-3 pb-3 pt-1 flex justify-end">
           {allowConsume ? (
             <button
-              onClick={() => handleConsumeToggle(mealType, snackIndex)}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              onClick={(e) => {
+                e.stopPropagation();
+                handleConsumeToggle(mealType, snackIndex);
+              }}
+              className={`px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium transition-colors ${
                 isConsumed
                   ? "bg-gray-200 text-gray-600 hover:bg-gray-300"
                   : "bg-green-600 text-white hover:bg-green-700"
@@ -123,7 +164,8 @@ const MealPlanDay = ({
           ) : (
             <button
               disabled
-              className="px-4 py-1.5 rounded-md text-sm font-medium bg-gray-200 text-gray-600"
+              onClick={(e) => e.stopPropagation()}
+              className="px-3 py-1.5 rounded-md text-xs sm:text-sm font-medium bg-gray-200 text-gray-600"
             >
               Unavailable
             </button>

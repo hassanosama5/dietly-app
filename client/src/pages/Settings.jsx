@@ -30,9 +30,8 @@ const Settings = () => {
     profileVisible: true,
     showProgress: false,
   });
-
+ 
   const handleSaveSettings = () => {
-    console.log("Saving settings:", { notifications, privacy });
     alert("Settings saved successfully!");
   };
 

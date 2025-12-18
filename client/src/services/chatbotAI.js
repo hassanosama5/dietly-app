@@ -1,19 +1,22 @@
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
+// src/services/chatbotAI.js
+import api from "./api";
 
-export async function generateChatResponse(userMessage, conversationHistory = []) {
+export async function generateChatResponse(
+  userMessage,
+  conversationHistory = []
+) {
   try {
-    const response = await fetch(`${API_URL}/api/v1/chatbot/message`, {
+    const response = await api.post("/chatbot/message", {
       message: userMessage,
-      conversationHistory: conversationHistory,
+      conversationHistory,
     });
 
-    const data = response.data;
-
-    if (data.success) {
-      return data.response;
-    } else {
-      throw new Error(data.error || "Failed to get response");
+    // Axios already parses JSON
+    if (response.data?.success) {
+      return response.data.response;
     }
+
+    throw new Error(response.data?.error || "Failed to get response");
   } catch (error) {
     console.error("Chatbot API error:", error);
     return getFallbackResponse(userMessage);
