@@ -25,7 +25,8 @@ app.use(
   cors({
     origin: [
       "http://localhost:5000", // For local development
-      "http://localhost:3000", // For local development
+      "http://localhost:3000",
+      "http://localhost:3002", // For local development
       "https://dietlyapp.vercel.app", // ✅ Add your LIVE frontend URL here
       "https://dietlyapp-*.vercel.app",
     ],
